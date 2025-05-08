@@ -1,0 +1,23 @@
+{
+    "home": {
+      "title": "College News",
+      "no_news": "No news available",
+      "offline": "Offline Mode: Using cached news"
+    },
+    "profile": {
+      "title": "Profile",
+      "language": "Select Language",
+      "english": "English",
+      "kiswahili": "Kiswahili"
+    },
+    "news": {
+      "1": {
+        "title": "DIT Open Day 2025",
+        "summary": "Join us for the annual open day on June 15, 2025."
+      },
+      "2": {
+        "title": "Exam Schedule Released",
+        "summary": "Check the final exam schedule for Semester 2."
+      }
+    }
+  }

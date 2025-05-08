@@ -1,0 +1,23 @@
+{
+    "home": {
+      "title": "Habari za Chuo",
+      "no_news": "Hakuna habari zinazopatikana",
+      "offline": "Hali ya Nje ya Mtandao: Kutumia habari zilizohifadhiwa"
+    },
+    "profile": {
+      "title": "Wasifu",
+      "language": "Chagua Lugha",
+      "english": "Kiingereza",
+      "kiswahili": "Kiswahili"
+    },
+    "news": {
+      "1": {
+        "title": "Siku ya Wazi ya DIT 2025",
+        "summary": "Jiunge nasi kwa siku ya wazi ya kila mwaka mnamo Juni 15, 2025."
+      },
+      "2": {
+        "title": "Ratiba ya Mitihani Imetolewa",
+        "summary": "Angalia ratiba ya mitihani ya mwisho kwa Muhula wa 2."
+      }
+    }
+  }
