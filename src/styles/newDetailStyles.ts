@@ -1,6 +1,7 @@
 import styled from '@emotion/native';
-import { KeyboardAvoidingView } from 'react-native';
+import { Dimensions, KeyboardAvoidingView } from 'react-native';
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export const Container = styled(KeyboardAvoidingView)`
   flex: 1;
@@ -64,6 +65,8 @@ export const ImageContainer = styled.View`
   shadow-offset: 0px 2px;
   shadow-opacity: 0.1;
   shadow-radius: 3px;
+  margin-left: 15px;
+  margin-right: 15px;
 `;
 
 export const NewsImage = styled.Image`
@@ -234,11 +237,14 @@ export const CommentsList = styled.View`
   padding: 0 15px 20px 15px;
 `;
 
+// Missing components that are used in the NewsDetailScreen file
 export const EmptyCommentText = styled.Text`
-  color: ${(props) => props.theme.text};
+  font-size: 14px;
   font-family: 'Roboto-Regular';
+  color: ${(props) => props.theme.text};
+  opacity: 0.7;
   text-align: center;
-  padding: 20px;
+  padding: 20px 0;
 `;
 
 export const LoadingContainer = styled.View`

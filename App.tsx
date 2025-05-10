@@ -9,6 +9,7 @@ import { useTheme } from './src/theme';
 import Navigation from './src/navigation';
 import { useAppStore } from './src/store';
 import io from 'socket.io-client';
+// import SplashScreen from 'react-native-splash-screen';
 
 enableScreens();
 const BASE_URL = 'http://10.0.2.2:5000';
@@ -93,11 +94,14 @@ const App = () => {
       }
     };
     fetchNotifications();
+    // SplashScreen.hide();
 
     // Cleanup on unmount
     return () => {
       socket.disconnect();
     };
+
+
   }, [user, token, setToken, addNotification, setNotifications]);
 
   // Function to display a notification

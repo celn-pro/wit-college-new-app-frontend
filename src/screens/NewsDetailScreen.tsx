@@ -425,19 +425,6 @@ const NewsDetailScreen = () => {
       </Header>
       <ScrollContainer>
         <NewsContent>
-          <ImageContainer>
-            <NewsImage
-              source={{ uri: isEditing && editImage ? editImage : resolveImageUrl(newsItem.image) }}
-              defaultSource={require('../assets/placeholder.png')}
-            />
-            {isEditing && (
-              <Animated.View style={[animatedEditStyle, { position: 'absolute', bottom: 10, right: 10 }]}>
-                <TouchableOpacity onPress={handleImagePick} style={{ backgroundColor: '#007BFF', padding: 8, borderRadius: 8 }}>
-                  <Icon name="image" size={20} color="#fff" />
-                </TouchableOpacity>
-              </Animated.View>
-            )}
-          </ImageContainer>
           <ContentContainer>
             {isEditing ? (
               <Animated.View style={animatedEditStyle} entering={FadeIn} exiting={FadeOut}>
@@ -451,6 +438,53 @@ const NewsDetailScreen = () => {
                   style={{ fontSize: 20, fontFamily: 'Roboto-Bold', marginBottom: 12 }}
                   accessibilityLabel="Edit title"
                 />
+              </Animated.View>
+            ) : (
+              <Animated.View style={animatedEditStyle} entering={FadeIn} exiting={FadeOut}>
+                <Title>{newsItem.title}</Title>
+                <Meta>{newsItem.category} • {new Date(newsItem.createdAt).toLocaleDateString()}</Meta>
+                <ReadTime>{calculateReadTime(newsItem.content)}</ReadTime>
+              </Animated.View>
+            )}
+          </ContentContainer>
+          
+          <ImageContainer>
+            <NewsImage
+              source={{ uri: isEditing && editImage ? editImage : resolveImageUrl(newsItem.image) }}
+              defaultSource={require('../assets/placeholder.png')}
+            />
+            {isEditing && (
+              <Animated.View style={[animatedEditStyle, { position: 'absolute', bottom: 10, right: 10 }]}>
+                <TouchableOpacity onPress={handleImagePick} style={{ backgroundColor: '#007BFF', padding: 8, borderRadius: 8 }}>
+                  <Icon name="image" size={20} color="#fff" />
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+          </ImageContainer>
+          
+          <ContentContainer>
+            <ActionBar>
+              <ActionItem onPress={handleLike} accessibilityLabel={isLiked ? 'Unlike news' : 'Like news'}>
+                <Animated.View style={animatedLikeStyle}>
+                  <Icon name={isLiked ? 'heart' : 'heart-outline'} size={20} color={isLiked ? '#007BFF' : theme.text} />
+                </Animated.View>
+                <ActionText>{likeCount} Likes</ActionText>
+              </ActionItem>
+              <ActionItem onPress={toggleCommentInput} accessibilityLabel="View or add comment">
+                <Icon name="chatbubble-outline" size={20} color={theme.text} />
+                <ActionText>{comments.length} Comments</ActionText>
+              </ActionItem>
+              <ActionItem accessibilityLabel="View count">
+                <Icon name="eye-outline" size={20} color={theme.text} />
+                <ActionText>{viewCount} Views</ActionText>
+              </ActionItem>
+              <ActionItem onPress={handleShare} accessibilityLabel="Share news">
+                <Icon name="share-outline" size={20} color={theme.text} />
+              </ActionItem>
+            </ActionBar>
+            
+            {isEditing ? (
+              <Animated.View style={animatedEditStyle}>
                 <CommentInput
                   value={editContent}
                   onChangeText={setEditContent}
@@ -472,34 +506,13 @@ const NewsDetailScreen = () => {
               </Animated.View>
             ) : (
               <Animated.View style={animatedEditStyle} entering={FadeIn} exiting={FadeOut}>
-                <Title>{newsItem.title}</Title>
-                <Meta>{newsItem.category} • {new Date(newsItem.createdAt).toLocaleDateString()}</Meta>
-                <ReadTime>{calculateReadTime(newsItem.content)}</ReadTime>
-                <ActionBar>
-                  <ActionItem onPress={handleLike} accessibilityLabel={isLiked ? 'Unlike news' : 'Like news'}>
-                    <Animated.View style={animatedLikeStyle}>
-                      <Icon name={isLiked ? 'heart' : 'heart-outline'} size={20} color={isLiked ? '#007BFF' : theme.text} />
-                    </Animated.View>
-                    <ActionText>{likeCount} Likes</ActionText>
-                  </ActionItem>
-                  <ActionItem onPress={toggleCommentInput} accessibilityLabel="View or add comment">
-                    <Icon name="chatbubble-outline" size={20} color={theme.text} />
-                    <ActionText>{comments.length} Comments</ActionText>
-                  </ActionItem>
-                  <ActionItem accessibilityLabel="View count">
-                    <Icon name="eye-outline" size={20} color={theme.text} />
-                    <ActionText>{viewCount} Views</ActionText>
-                  </ActionItem>
-                  <ActionItem onPress={handleShare} accessibilityLabel="Share news">
-                    <Icon name="share-outline" size={20} color={theme.text} />
-                  </ActionItem>
-                </ActionBar>
                 <Content>{newsItem.content}</Content>
               </Animated.View>
             )}
             <Divider />
           </ContentContainer>
         </NewsContent>
+        
         <CommentsHeader>
           <SortButton onPress={toggleSortOrder} accessibilityLabel={`Sort comments by ${sortOrder === 'newest' ? 'oldest' : 'newest'}`}>
             <Icon name={sortOrder === 'newest' ? 'arrow-down' : 'arrow-up'} size={16} color={theme.text} />

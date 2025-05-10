@@ -7,6 +7,13 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../theme';
 import { fetchNews } from '../services/newsService';
+import { BASE_URL } from '../utils';
+
+const resolveImageUrl = (imagePath: string) => {
+  if (!imagePath) return 'https://picsum.photos/seed/default-news/200/200';
+  if (imagePath.startsWith('/assets')) return `${BASE_URL}${imagePath}`;
+  return imagePath;
+};
 
 const Container = styled.View`
   flex: 1;
@@ -149,10 +156,10 @@ const SearchScreen = () => {
     return () => clearTimeout(debounceTimeout);
   }, [query, role]);
 
-  const renderNewsItem = ({ item }: { item: { id: string; title: string; content: string; category: string; image?: string; createdAt: string } }) => (
-    <NewsCard onPress={() => navigation.navigate('NewsDetail', { newsId: item.id })}>
+  const renderNewsItem = ({ item }: { item: { _id: string; title: string; content: string; category: string; image?: string; createdAt: string } }) => (
+    <NewsCard onPress={() => navigation.navigate('NewsDetail', { newsId: item._id })}>
       <NewsImage 
-        source={{ uri: item.image || 'https://picsum.photos/seed/default-news/200/200' }}
+        source={{ uri: resolveImageUrl(item.image || '') }}
         defaultSource={require('../assets/placeholder.png')}
       />
       <NewsContent>
@@ -162,7 +169,6 @@ const SearchScreen = () => {
       </NewsContent>
     </NewsCard>
   );
-
   return (
     <Container>
       <SearchBarContainer>
@@ -194,7 +200,7 @@ const SearchScreen = () => {
         <FlatList
           data={searchResults}
           renderItem={renderNewsItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item._id}
         />
       ) : (
         <EmptyStateContainer>

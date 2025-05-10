@@ -12,8 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Carousel from 'react-native-reanimated-carousel';
 import Toast from 'react-native-toast-message';
 import axios from 'axios';
-
-const BASE_URL = 'http://10.0.2.2:5000';
+import { BASE_URL } from '../utils';
 
 const resolveImageUrl = (imagePath: string) => {
   if (!imagePath) return 'https://picsum.photos/seed/default-news/200/200';
@@ -36,7 +35,7 @@ const CategoryText = styled.Text`font-size: 14px; font-family: 'Roboto-Regular';
 const FeaturedCarouselContainer = styled.View`margin: 15px 15px 0 15px; border-radius: 10px; overflow: hidden;`;
 const FixedContentContainer = styled.View`background-color: ${(props) => props.theme.background};`;
 const ScrollableContentContainer = styled.ScrollView`flex: 1; background-color: ${(props) => props.theme.background};`;
-const FeaturedCard = styled.View`width: ${SCREEN_WIDTH - 30}px; height: 200px; border-radius: 10px; overflow: hidden; background-color: ${(props) => props.theme.cardBackground}; elevation: 3; shadow-color: #000; shadow-offset: 0px 2px; shadow-opacity: 0.1; shadow-radius: 3px;`;
+const FeaturedCard = styled.TouchableOpacity`width: ${SCREEN_WIDTH - 30}px; height: 200px; border-radius: 10px; overflow: hidden; background-color: ${(props) => props.theme.cardBackground}; elevation: 3; shadow-color: #000; shadow-offset: 0px 2px; shadow-opacity: 0.1; shadow-radius: 3px;`;
 const FeaturedImage = styled.Image`width: 100%; height: 100%;`;
 const FeaturedOverlay = styled.View`position: absolute; bottom: 0; left: 0; right: 0; padding: 15px; background-color: rgba(0, 0, 0, 0.5);`;
 const FeaturedTitle = styled.Text`font-size: 18px; font-family: 'Roboto-Bold'; color: #ffffff;`;
@@ -217,12 +216,12 @@ const HomeScreen = () => {
     }
     return featuredItems.map((item) => ({
       ...item,
-      image: item.image || 'https://picsum.photos/seed/college-news/600/400',
+      image: resolveImageUrl(item.image || ''),
     }));
   };
 
   const renderFeaturedItem = (item: News) => (
-    <FeaturedCard>
+    <FeaturedCard onPress={() => navigation.navigate('NewsDetail', { newsId: item._id })}>
       <FeaturedImage
         source={{ uri: resolveImageUrl(item.image || '') }}
         defaultSource={require('../assets/placeholder.png')}
