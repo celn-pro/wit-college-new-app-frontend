@@ -5,6 +5,7 @@ import { useAppStore } from '../store';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../theme';
+import { BASE_URL } from '../utils';
 
 const Container = styled.View`
   flex: 1;
@@ -121,7 +122,7 @@ const AuthScreen = () => {
         ? { username, password, email, role, facultyCode: role === 'faculty' ? facultyCode : undefined }
         : { username, password };
 
-      const response = await fetch(`http://10.0.2.2:5000/api/auth/${endpoint}`, {
+      const response = await fetch(`${BASE_URL}/api/auth/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -151,7 +152,7 @@ const AuthScreen = () => {
 
     setLoading(true);
     try {
-      const response = await fetch('http://10.0.2.2:5000/api/faculty-code/request', {
+      const response = await fetch(`${BASE_URL}/api/faculty-code/request`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

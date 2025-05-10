@@ -10,6 +10,7 @@ import Toast from 'react-native-toast-message';
 import { launchImageLibrary } from 'react-native-image-picker';
 import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
+import { BASE_URL } from '../utils';
 
 const Container = styled.ScrollView`
   flex: 1;
@@ -138,7 +139,7 @@ const CreateScreen = () => {
     setFetchingCategories(true);
     try {
       console.log('Fetching categories...');
-      const response = await axios.get('http://10.0.2.2:5000/api/categories', {
+      const response = await axios.get(`${BASE_URL}/api/categories`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -222,7 +223,7 @@ const CreateScreen = () => {
             type: asset.type || 'image/jpeg',
             name: asset.fileName || 'image.jpg',
           });
-          const res = await axios.post('http://10.0.2.2:5000/api/news/upload-image', formData, {
+          const res = await axios.post(`${BASE_URL}/api/news/upload-image`, formData, {
             headers: {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'multipart/form-data',

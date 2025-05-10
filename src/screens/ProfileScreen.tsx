@@ -8,6 +8,7 @@ import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../theme';
 import Toast from 'react-native-toast-message';
 import axios from 'axios';
+import { BASE_URL } from '../utils';
 
 interface RoleBadgeProps {
   userRole: 'admin' | 'faculty' | 'student';
@@ -176,9 +177,9 @@ const ProfileScreen = () => {
   const fetchAdminStats = async () => {
     try {
       const [newsRes, usersRes, categoriesRes] = await Promise.all([
-        axios.get('http://10.0.2.2:5000/api/news', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://10.0.2.2:5000/api/users', { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get('http://10.0.2.2:5000/api/categories', { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${BASE_URL}/api/news`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${BASE_URL}/api/users`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${BASE_URL}/api/categories`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
       const categoryStats = categoriesRes.data.map((cat: any) => ({
         name: cat.name,
@@ -193,7 +194,7 @@ const ProfileScreen = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get('http://10.0.2.2:5000/api/users', {
+      const res = await axios.get(`${BASE_URL}/api/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(res.data);
@@ -226,7 +227,7 @@ const ProfileScreen = () => {
     }
     try {
       const res = await axios.post(
-        'http://10.0.2.2:5000/api/auth/make-admin',
+        `${BASE_URL}/api/auth/make-admin`,
         { username: adminUsername, password: adminPassword, email: adminEmail },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -243,7 +244,7 @@ const ProfileScreen = () => {
   const handleChangeRole = async (userId: string, newRole: 'student' | 'faculty' | 'admin') => {
     try {
       await axios.patch(
-        `http://10.0.2.2:5000/api/users/${userId}/role`,
+        `${BASE_URL}/api/users/${userId}/role`,
         { role: newRole },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -256,7 +257,7 @@ const ProfileScreen = () => {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      await axios.delete(`http://10.0.2.2:5000/api/users/${userId}`, {
+      await axios.delete(`${BASE_URL}/api/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       Toast.show({ type: 'success', text1: 'Success', text2: 'User deleted' });
@@ -270,7 +271,7 @@ const ProfileScreen = () => {
     const newPassword = 'newpassword123'; // Generate a random password or use a prompt
     try {
       await axios.patch(
-        `http://10.0.2.2:5000/api/users/${userId}/password`,
+        `${BASE_URL}/api/users/${userId}/password`,
         { password: newPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -287,7 +288,7 @@ const ProfileScreen = () => {
     }
     try {
       await axios.post(
-        'http://10.0.2.2:5000/api/faculty-code/request',
+        `${BASE_URL}/api/faculty-code/request`,
         { email: user.email },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -304,7 +305,7 @@ const ProfileScreen = () => {
     }
     try {
       const res = await axios.patch(
-        `http://10.0.2.2:5000/api/users/${user?._id}`,
+        `${BASE_URL}/api/users/${user?._id}`,
         { email, displayName },
         { headers: { Authorization: `Bearer ${token}` } }
       );

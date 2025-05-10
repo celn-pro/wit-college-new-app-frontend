@@ -17,8 +17,7 @@ import {
   ErrorContainer, ErrorText, RetryButton, RetryButtonText, NewsContent, CommentsHeader,
   CommentsList, EmptyCommentText, LoadingContainer,
 } from '../styles/newDetailStyles';
-
-const BASE_URL = 'http://10.0.2.2:5000';
+import { BASE_URL } from '../utils';
 
 const resolveImageUrl = (imagePath: string) => {
   if (!imagePath) return 'https://picsum.photos/seed/default-news/200/200';

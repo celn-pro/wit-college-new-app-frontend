@@ -8,6 +8,7 @@ import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../theme';
 import Toast from 'react-native-toast-message';
 import axios from 'axios';
+import { BASE_URL } from '../utils';
 
 const Container = styled.View`
   flex: 1;
@@ -126,7 +127,7 @@ const CategorySelectionScreen = () => {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get('http://10.0.2.2:5000/api/categories', {
+      const res = await axios.get(`${BASE_URL}/api/categories`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const categoryNames = res.data.map((cat: any) => cat.name);
@@ -156,7 +157,7 @@ const CategorySelectionScreen = () => {
   const fetchUserPreferences = async () => {
     try {
       // First try to fetch from userpreferences collection
-      const res = await axios.get(`http://10.0.2.2:5000/api/userpreferences/${user?._id}`, {
+      const res = await axios.get(`${BASE_URL}/api/userpreferences/${user?._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
@@ -164,7 +165,7 @@ const CategorySelectionScreen = () => {
         setSelectedCategories(res.data.selectedCategories);
       } else {
         // Fallback to checking user object for legacy support
-        const userRes = await axios.get(`http://10.0.2.2:5000/api/users/${user?._id}`, {
+        const userRes = await axios.get(`${BASE_URL}/api/users/${user?._id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setSelectedCategories(userRes.data.selectedCategories || []);
@@ -173,7 +174,7 @@ const CategorySelectionScreen = () => {
       console.error('Error fetching user preferences:', error);
       // If userpreferences endpoint fails, try the legacy endpoint
       try {
-        const userRes = await axios.get(`http://10.0.2.2:5000/api/users/${user?._id}`, {
+        const userRes = await axios.get(`${BASE_URL}/api/users/${user?._id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setSelectedCategories(userRes.data.selectedCategories || []);
@@ -196,7 +197,7 @@ const CategorySelectionScreen = () => {
     try {
       // Save to userpreferences collection
       await axios.post(
-        `http://10.0.2.2:5000/api/userpreferences/update-categories`,
+        `${BASE_URL}/api/userpreferences/update-categories`,
         { 
           userId: user?._id,
           selectedCategories 
@@ -206,7 +207,7 @@ const CategorySelectionScreen = () => {
       
       // Also update the user object for backward compatibility
       await axios.patch(
-        `http://10.0.2.2:5000/api/users/${user?._id}/categories`,
+        `${BASE_URL}/api/users/${user?._id}/categories`,
         { selectedCategories },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -230,7 +231,7 @@ const CategorySelectionScreen = () => {
     }
     try {
       await axios.post(
-        'http://10.0.2.2:5000/api/categories',
+        `${BASE_URL}/api/categories`,
         { name: newCategory.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -244,7 +245,7 @@ const CategorySelectionScreen = () => {
 
   const handleDeleteCategory = async (category: string) => {
     try {
-      await axios.delete(`http://10.0.2.2:5000/api/categories/${category}`, {
+      await axios.delete(`${BASE_URL}/api/categories/${category}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       Toast.show({ type: 'success', text1: 'Success', text2: `Category ${category} deleted` });

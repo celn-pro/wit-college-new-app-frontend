@@ -8,8 +8,7 @@ import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
-
-const BASE_URL = 'http://10.0.2.2:5000';
+import { BASE_URL } from '../utils';
 
 const SafeContainer = styled(SafeAreaView)`flex: 1; background-color: ${(props) => props.theme.background};`;
 const Header = styled.View`flex-direction: row; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: ${(props) => props.theme.cardBackground};`;

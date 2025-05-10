@@ -1,9 +1,7 @@
 import axios from 'axios';
 import { useAppStore } from '../store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-// Replace with your backend API base URL
-const API_BASE_URL = 'http://10.0.2.2:5000/api';
+import { API_BASE_URL } from '../utils';
 
 interface NewsItem {
   _id: string;
@@ -19,7 +17,7 @@ export const toggleArchiveNews = async (newsId: string) => {
   const { token } = useAppStore.getState();
   try {
     const response = await axios.post(
-      'http://10.0.2.2:5000/api/news/toggle-archive',
+      `${API_BASE_URL}/news/toggle-archive`,
       { newsId },
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -34,7 +32,7 @@ export const fetchUserPreferences = async () => {
   const { token, user } = useAppStore.getState();
   if (!user) throw new Error('User not logged in');
   try {
-    const response = await axios.get(`http://10.0.2.2:5000/api/userpreferences/${user._id}`, {
+    const response = await axios.get(`${API_BASE_URL}/userpreferences/${user._id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
@@ -80,7 +78,7 @@ export const fetchNews = async (role: string, category: string = '', query: stri
 export const fetchArchivedNews = async (role: string) => {
   const { token } = useAppStore.getState();
   try {
-    const response = await axios.get('http://10.0.2.2:5000/api/news/archived', {
+    const response = await axios.get(`${API_BASE_URL}/news/archived`, {
       headers: { Authorization: `Bearer ${token}` },
       params: { role },
     });
@@ -100,7 +98,7 @@ export const createNews = async (newsData: {
 }) => {
   const { token } = useAppStore.getState();
   try {
-    const response = await axios.post('http://10.0.2.2:5000/api/news', newsData, {
+    const response = await axios.post(`${API_BASE_URL}/news`, newsData, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -118,7 +116,7 @@ export const addComment = async (newsId: string, content: string) => {
   if (!user) throw new Error('User not logged in');
   try {
     const response = await axios.post(
-      'http://10.0.2.2:5000/api/comments',
+      `${API_BASE_URL}/comments`,
       { newsId, content },
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -132,7 +130,7 @@ export const addComment = async (newsId: string, content: string) => {
 export const fetchComments = async (newsId: string) => {
   const { token } = useAppStore.getState();
   try {
-    const response = await axios.get(`http://10.0.2.2:5000/api/comments/${newsId}`, {
+    const response = await axios.get(`${API_BASE_URL}/comments/${newsId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
@@ -146,7 +144,7 @@ export const likeNews = async (newsId: string) => {
   const { token } = useAppStore.getState();
   try {
     const response = await axios.post(
-      'http://10.0.2.2:5000/api/news/like',
+      `${API_BASE_URL}/news/like`,
       { newsId },
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -161,7 +159,7 @@ export const incrementViewCount = async (newsId: string, userId?: string) => {
   const { token } = useAppStore.getState();
   try {
     const response = await axios.post(
-      'http://10.0.2.2:5000/api/news/view',
+      `${API_BASE_URL}/news/view`,
       { newsId, userId },
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -199,7 +197,7 @@ export const updateNews = async (newsId: string, updates: { title: string; conte
   const { token } = useAppStore.getState();
   try {
     const response = await axios.put(
-      `http://10.0.2.2:5000/api/news/${newsId}`,
+      `${API_BASE_URL}/news/${newsId}`,
       updates,
       { headers: { Authorization: `Bearer ${token}` } }
     );
