@@ -11,7 +11,7 @@ interface User {
 }
 
 interface Notification {
-  id: string;
+  _id: string;
   title: string;
   body: string;
   read: boolean;
@@ -45,6 +45,7 @@ interface AppStore {
   setToken: (token: string | null) => void;
   toggleTheme: () => void;
   addNotification: (notification: Notification) => void;
+  setNotifications: (notifications: Notification[]) => void; 
   markNotificationAsRead: (id: string) => void;
   markAllNotificationsAsRead: () => void;
   getUnreadCount: () => number;
@@ -75,10 +76,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
   toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
   addNotification: (notification) =>
     set((state) => ({ notifications: [...state.notifications, notification] })),
+  setNotifications: (notifications) => set({ notifications }),
   markNotificationAsRead: (id) =>
     set((state) => ({
       notifications: state.notifications.map((notif) =>
-        notif.id === id ? { ...notif, read: true } : notif
+        notif._id === id ? { ...notif, read: true } : notif
       ),
     })),
   markAllNotificationsAsRead: () =>

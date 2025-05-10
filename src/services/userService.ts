@@ -73,6 +73,7 @@ export const toggleArchiveNews = async (newsId: string): Promise<NewsItem> => {
       throw new Error(error.response?.data?.message || 'Failed to toggle archive status');
     }
   };
+
 export const updateUserPreferences = async (userId: string, preferences: Partial<UserPreferences>) => {  }
 
 export const fetchUserProfile = async (userId: string) => {  }

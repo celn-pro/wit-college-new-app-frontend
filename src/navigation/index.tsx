@@ -66,16 +66,6 @@ const MainTabs = () => {
         component={NotificationsScreen}
         options={{ title: 'Notifications', headerShown: false }}
       />
-      <Tab.Screen
-        name="Archive"
-        component={ArchiveScreen}
-        options={{ title: 'Archive', headerShown: false }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ title: 'Profile', headerShown: false }}
-      />
       {isAdmin && (
         <Tab.Screen
           name="Create"
@@ -83,6 +73,19 @@ const MainTabs = () => {
           options={{ title: 'Create', headerShown: false }}
         />
       )}
+      
+      <Tab.Screen
+        name="Archive"
+        component={ArchiveScreen}
+        options={{ title: 'Archived', headerShown: false }}
+      />
+      
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ title: 'Profile', headerShown: false }}
+      />
+
     </Tab.Navigator>
   );
 };

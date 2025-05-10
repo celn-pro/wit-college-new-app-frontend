@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { FlatList, TouchableOpacity, Image, View, Text, ActivityIndicator, RefreshControl } from 'react-native';
 import styled from '@emotion/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAppStore } from '../store';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../theme';
 import { fetchArchivedNews, toggleArchiveNews } from '../services/newsService';
@@ -117,19 +117,30 @@ const ArchiveScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadArchivedNews = async () => {
+  const loadArchivedNews = async (showLoadingIndicator = true) => {
     if (!user) return;
+    
+    if (showLoadingIndicator && !refreshing) {
+      setLoading(true);
+    }
+    
     try {
       setError(null);
       // Fetch archived news from backend
       const newsData = await fetchArchivedNews(user.role || 'user');
       console.log('Fetched archived news:', newsData.length);
-      setArchivedNews(newsData);
-      const newArchivedNewsIds = newsData.map((item: any) => item._id);
-      setArchivedNewsIds(newArchivedNewsIds);
-      // Update local state with fetched IDs
-      if (JSON.stringify(newArchivedNewsIds) !== JSON.stringify(archivedNewsIds)) {
-        setArchivedNewsIds(newArchivedNewsIds);
+      
+      if (Array.isArray(newsData)) {
+        setArchivedNews(newsData);
+        const newArchivedNewsIds = newsData.map((item: any) => item._id);
+        
+        // Update local state with fetched IDs
+        if (JSON.stringify(newArchivedNewsIds) !== JSON.stringify(archivedNewsIds)) {
+          setArchivedNewsIds(newArchivedNewsIds);
+        }
+      } else {
+        console.error('Invalid news data format:', newsData);
+        setError('Received invalid data from server');
       }
     } catch (err: any) {
       const errorMessage = err.response?.status === 401
@@ -145,48 +156,48 @@ const ArchiveScreen = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadArchivedNews();
+    await loadArchivedNews(false);
   };
 
-  // Sync with store's archivedNewsIds
-  useEffect(() => {
-    if (allNews.length > 0 && archivedNewsIds.length > 0) {
-      const filteredArchivedNews = allNews.filter((item) => archivedNewsIds.includes(item._id));
-      setArchivedNews(filteredArchivedNews);
-    }
-  }, [allNews, archivedNewsIds]);
-
-  // Re-fetch on screen focus
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
+  // Use useFocusEffect instead of navigation.addListener
+  useFocusEffect(
+    useCallback(() => {
       console.log('ArchiveScreen focused, re-fetching archived news');
       loadArchivedNews();
-    });
-    return unsubscribe;
-  }, [navigation, user]);
+      
+      return () => {
+        // Cleanup if needed
+      };
+    }, [user]) // Only depend on user to prevent excessive reloads
+  );
 
-  // Initial load
+  // Initial load - this will run once on component mount
   useEffect(() => {
-    loadArchivedNews();
-  }, [user]);
+    if (user) {
+      loadArchivedNews();
+    }
+  }, []);
 
   const handleToggleArchive = async (_id: string) => {
     console.log('Toggling archive for _id:', _id);
     const isCurrentlyArchived = archivedNewsIds.includes(_id);
-    const newArchivedNewsIds = isCurrentlyArchived
-      ? archivedNewsIds.filter((id) => id !== _id)
-      : [...archivedNewsIds, _id];
-    setArchivedNewsIds(newArchivedNewsIds);
-    setArchivedNews(archivedNews.filter((item) => item._id !== _id));
+    
+    // Optimistically update UI
+    if (isCurrentlyArchived) {
+      setArchivedNews(archivedNews.filter((item) => item._id !== _id));
+      setArchivedNewsIds(archivedNewsIds.filter((id) => id !== _id));
+    }
 
     try {
       await toggleArchiveNews(_id);
       console.log('Backend unarchive successful for _id:', _id);
       toggleArchiveNewsState(_id);
+      
       const newsItem = archivedNews.find((item) => item._id === _id);
       if (newsItem && !allNews.some((item) => item._id === _id)) {
         setAllNews([...allNews, newsItem]);
       }
+      
       Toast.show({
         type: 'success',
         text1: 'Success',
@@ -194,12 +205,16 @@ const ArchiveScreen = () => {
       });
     } catch (error: any) {
       console.error('Unarchive failed:', error);
-      setArchivedNewsIds(
-        isCurrentlyArchived
-          ? [...archivedNewsIds, _id]
-          : archivedNewsIds.filter((id) => id !== _id)
-      );
-      setArchivedNews(isCurrentlyArchived ? [...archivedNews, allNews.find((item) => item._id === _id)].filter(Boolean) : archivedNews);
+      
+      // Revert optimistic update on error
+      if (isCurrentlyArchived) {
+        const newsItem = allNews.find((item) => item._id === _id);
+        if (newsItem) {
+          setArchivedNews(prev => [...prev, newsItem]);
+          setArchivedNewsIds([...archivedNewsIds, _id]);
+        }
+      }
+      
       Toast.show({
         type: 'error',
         text1: 'Error',
@@ -238,7 +253,7 @@ const ArchiveScreen = () => {
         </Header>
         <ErrorContainer>
           <ErrorText>{error}</ErrorText>
-          <TouchableOpacity onPress={loadArchivedNews}>
+          <TouchableOpacity onPress={() => loadArchivedNews(true)}>
             <Text style={{ color: theme.primary, fontFamily: 'Roboto-Bold' }}>Retry</Text>
           </TouchableOpacity>
         </ErrorContainer>

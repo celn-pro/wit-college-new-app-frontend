@@ -1,146 +1,123 @@
-import React from 'react';
-import { FlatList, TouchableOpacity, View, Text } from 'react-native';
+import React, { useEffect } from 'react';
+import { TouchableOpacity, View, Text, FlatList, ActivityIndicator } from 'react-native';
 import styled from '@emotion/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAppStore } from '../store';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
-const Container = styled.View`
-  flex: 1;
-  background-color: ${(props) => props.theme.background};
-  padding: 15px;
-`;
+const BASE_URL = 'http://10.0.2.2:5000';
 
-const Header = styled.View`
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  margin-bottom: 15px;
-`;
-
-const HeaderTitle = styled.Text`
-  font-size: 22px;
-  font-family: 'Roboto-Bold';
-  color: ${(props) => props.theme.text};
-`;
-
-const ClearButton = styled.TouchableOpacity`
-  padding: 5px 10px;
-  background-color: ${(props) => props.theme.cardBackground};
-  border-radius: 15px;
-`;
-
-const ClearButtonText = styled.Text`
-  font-size: 14px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-`;
-
-const NotificationCard = styled.View`
-  flex-direction: row;
-  padding: 15px;
-  margin-bottom: 10px;
-  background-color: ${(props) => props.theme.cardBackground};
-  border-radius: 10px;
-  align-items: center;
-  elevation: 2;
-  shadow-color: #000;
-  shadow-offset: 0px 1px;
-  shadow-opacity: 0.1;
-  shadow-radius: 2px;
-`;
-
-const NotificationContent = styled.View`
-  flex: 1;
-`;
-
-const NotificationTitle = styled.Text`
-  font-size: 16px;
-  font-family: 'Roboto-Bold';
-  color: ${(props) => props.theme.text};
-  margin-bottom: 5px;
-`;
-
-const NotificationBody = styled.Text`
-  font-size: 14px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-  margin-bottom: 5px;
-`;
-
-const NotificationMeta = styled.Text`
-  font-size: 12px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-  opacity: 0.7;
-`;
-
-const ActionButton = styled.TouchableOpacity`
-  padding: 5px;
-  margin-left: 10px;
-`;
-
-const EmptyStateContainer = styled.View`
-  flex: 1;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-`;
-
-const EmptyStateText = styled.Text`
-  font-size: 16px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-  text-align: center;
-`;
+const SafeContainer = styled(SafeAreaView)`flex: 1; background-color: ${(props) => props.theme.background};`;
+const Header = styled.View`flex-direction: row; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: ${(props) => props.theme.cardBackground};`;
+const HeaderTitle = styled.Text`font-size: 22px; font-family: 'Roboto-Bold'; color: ${(props) => props.theme.text};`;
+const NotificationCard = styled.TouchableOpacity`flex-direction: row; padding: 15px 20px; border-bottom-width: 1px; border-bottom-color: ${(props) => props.theme.cardBackground}; background-color: ${(props: any) => (props.read ? props.theme.background : '#f0f0f0')};`;
+const NotificationContent = styled.View`flex: 1;`;
+const NotificationTitle = styled.Text`font-size: 16px; font-family: 'Roboto-Bold'; color: ${(props) => props.theme.text}; margin-bottom: 5px;`;
+const NotificationBody = styled.Text`font-size: 14px; font-family: 'Roboto-Regular'; color: ${(props) => props.theme.text}; margin-bottom: 5px;`;
+const NotificationMeta = styled.Text`font-size: 12px; font-family: 'Roboto-Regular'; color: ${(props) => props.theme.text}; opacity: 0.7;`;
+const EmptyStateContainer = styled.View`flex: 1; justify-content: center; align-items: center;`;
+const EmptyStateText = styled.Text`font-size: 16px; font-family: 'Roboto-Regular'; color: ${(props) => props.theme.text};`;
+const MarkAllButton = styled.TouchableOpacity`padding: 8px 16px; background-color: ${(props) => props.theme.primary}; border-radius: 20px;`;
+const MarkAllText = styled.Text`font-size: 14px; font-family: 'Roboto-Bold'; color: #ffffff;`;
 
 const NotificationsScreen = () => {
-  const notifications = useAppStore((state) => state.notifications);
-  const markNotificationAsRead = useAppStore((state) => state.markNotificationAsRead);
-  const markAllNotificationsAsRead = useAppStore((state) => state.markAllNotificationsAsRead);
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { notifications, token, markNotificationAsRead, markAllNotificationsAsRead, getUnreadCount } = useAppStore();
   const theme = useTheme();
 
-  const unreadCount = notifications.filter((notif) => !notif.read).length;
+  const handleNotificationPress = async (notification: any) => {
+    if (!notification.read) {
+      try {
+        const response = await fetch(`${BASE_URL}/api/notifications/mark-read/${notification._id}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          markNotificationAsRead(notification._id);
+        }
+      } catch (error) {
+        console.error('Error marking notification as read:', error);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Failed to mark notification as read',
+        });
+      }
+    }
 
-  const renderNotification = ({ item }: { item: { id: string; title: string; body: string; read: boolean; createdAt: string } }) => (
-    <NotificationCard>
+    if (notification.newsId) {
+      navigation.navigate('NewsDetail', { newsId: notification.newsId });
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/api/notifications/mark-all-read`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        markAllNotificationsAsRead();
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: 'All notifications marked as read',
+        });
+      }
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to mark all notifications as read',
+      });
+    }
+  };
+
+  const renderNotification = ({ item }: { item: any }) => (
+    <NotificationCard read={item.read} onPress={() => handleNotificationPress(item)}>
       <NotificationContent>
         <NotificationTitle>{item.title}</NotificationTitle>
-        <NotificationBody numberOfLines={2}>{item.body}</NotificationBody>
+        <NotificationBody>{item.body}</NotificationBody>
         <NotificationMeta>{new Date(item.createdAt).toLocaleString()}</NotificationMeta>
       </NotificationContent>
       {!item.read && (
-        <ActionButton onPress={() => markNotificationAsRead(item.id)}>
-          <Icon name="checkmark-circle" size={20} color={theme.primary} />
-        </ActionButton>
+        <View style={{ justifyContent: 'center' }}>
+          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#007BFF' }} />
+        </View>
       )}
     </NotificationCard>
   );
 
   return (
-    <Container>
+    <SafeContainer>
       <Header>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Icon name="arrow-back" size={24} color={theme.text} />
+        </TouchableOpacity>
         <HeaderTitle>Notifications</HeaderTitle>
-        {notifications.length > 0 && unreadCount > 0 && (
-          <ClearButton onPress={markAllNotificationsAsRead}>
-            <ClearButtonText>Clear All</ClearButtonText>
-          </ClearButton>
+        {getUnreadCount() > 0 && (
+          <MarkAllButton onPress={handleMarkAllRead}>
+            <MarkAllText>Mark All Read {getUnreadCount()}</MarkAllText>
+          </MarkAllButton>
         )}
       </Header>
       {notifications.length > 0 ? (
         <FlatList
           data={notifications}
           renderItem={renderNotification}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item._id}
         />
       ) : (
         <EmptyStateContainer>
-          <Icon name="notifications-outline" size={50} color={theme.text} style={{ opacity: 0.5 }} />
-          <EmptyStateText>No notifications available.</EmptyStateText>
+          <EmptyStateText>No notifications yet.</EmptyStateText>
         </EmptyStateContainer>
       )}
-    </Container>
+    </SafeContainer>
   );
 };
 

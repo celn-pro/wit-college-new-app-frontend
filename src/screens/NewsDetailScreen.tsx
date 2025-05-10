@@ -1,14 +1,22 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { TouchableOpacity, Image, View, Text, TextInput, FlatList, KeyboardAvoidingView, Platform, Share, ActivityIndicator } from 'react-native';
-import styled from '@emotion/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAppStore } from '../store';
 import { useNavigation, useRoute, NavigationProp, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../theme';
-import { toggleArchiveNews, addComment, likeNews, fetchComments, incrementViewCount, fetchNewsById } from '../services/newsService';
+import { toggleArchiveNews, addComment, likeNews, fetchComments, incrementViewCount, fetchNewsById, updateNews } from '../services/newsService';
 import Toast from 'react-native-toast-message';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeIn, FadeOut, runOnJS } from 'react-native-reanimated';
+import { launchImageLibrary } from 'react-native-image-picker';
+import {
+  Container, Header, ScrollContainer, ContentContainer, Title, Content, Meta,
+  ReadTime, ImageContainer, NewsImage, ActionBar, ActionItem, ActionText, ActionButton,
+  CommentSection, CommentInputContainer, CommentInput, CommentButton, CommentButtonText,
+  CommentCard, CommentUser, CommentContent, CommentMeta, SortButton, SortText, Divider,
+  ErrorContainer, ErrorText, RetryButton, RetryButtonText, NewsContent, CommentsHeader,
+  CommentsList, EmptyCommentText, LoadingContainer,
+} from '../styles/newDetailStyles';
 
 const BASE_URL = 'http://10.0.2.2:5000';
 
@@ -17,251 +25,6 @@ const resolveImageUrl = (imagePath: string) => {
   if (imagePath.startsWith('/assets')) return `${BASE_URL}${imagePath}`;
   return imagePath;
 };
-
-const Container = styled(KeyboardAvoidingView)`
-  flex: 1;
-  background-color: ${(props) => props.theme.background};
-`;
-
-const Header = styled.View`
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 15px;
-  margin-bottom: 10px;
-`;
-
-const ScrollContainer = styled.ScrollView`
-  flex: 1;
-`;
-
-const ContentContainer = styled.View`
-  flex: 1;
-  padding: 0 15px;
-`;
-
-const Title = styled.Text`
-  font-size: 24px;
-  font-family: 'Roboto-Bold';
-  color: ${(props) => props.theme.text};
-  margin-bottom: 10px;
-`;
-
-const Content = styled.Text`
-  font-size: 16px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-  line-height: 24px;
-  margin-bottom: 15px;
-`;
-
-const Meta = styled.Text`
-  font-size: 14px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-  opacity: 0.7;
-  margin-bottom: 10px;
-`;
-
-const ReadTime = styled.Text`
-  font-size: 12px;
-  font-family: 'Roboto-Italic';
-  color: ${(props) => props.theme.text};
-  opacity: 0.7;
-  margin-bottom: 15px;
-`;
-
-const ImageContainer = styled.View`
-  margin-bottom: 15px;
-  border-radius: 10px;
-  overflow: hidden;
-  elevation: 2;
-  shadow-color: #000;
-  shadow-offset: 0px 2px;
-  shadow-opacity: 0.1;
-  shadow-radius: 3px;
-`;
-
-const NewsImage = styled.Image`
-  width: 100%;
-  height: 250px;
-`;
-
-const ActionBar = styled.View`
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  margin-bottom: 15px;
-  background-color: ${(props) => props.theme.cardBackground};
-  border-radius: 10px;
-  elevation: 1;
-`;
-
-const ActionItem = styled.TouchableOpacity`
-  flex-direction: row;
-  align-items: center;
-  padding: 5px 10px;
-`;
-
-const ActionText = styled.Text`
-  font-size: 14px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-  margin-left: 5px;
-`;
-
-const ActionButton = styled.TouchableOpacity`
-  padding: 10px;
-  border-radius: 20px;
-  align-items: center;
-`;
-
-const CommentSection = styled.View`
-  margin-top: 15px;
-  padding: 10px;
-  background-color: ${(props) => props.theme.cardBackground};
-  border-radius: 10px;
-`;
-
-const CommentInputContainer = styled.View`
-  margin-bottom: 10px;
-`;
-
-const CommentInput = styled.TextInput`
-  border-width: 1px;
-  border-color: ${(props) => props.theme.text}20;
-  border-radius: 10px;
-  padding: 10px;
-  font-family: 'Roboto-Regular';
-  font-size: 16px;
-  color: ${(props) => props.theme.text};
-  background-color: ${(props) => props.theme.background};
-  min-height: 80px;
-`;
-
-const CommentButton = styled.TouchableOpacity`
-  background-color: ${(props) => props.theme.primary};
-  padding: 10px;
-  border-radius: 10px;
-  align-items: center;
-  margin-top: 10px;
-`;
-
-const CommentButtonText = styled.Text`
-  font-size: 16px;
-  font-family: 'Roboto-Bold';
-  color: #ffffff;
-`;
-
-const CommentCard = styled.View`
-  padding: 10px;
-  margin-bottom: 10px;
-  background-color: ${(props) => props.theme.background};
-  border-radius: 10px;
-  elevation: 1;
-  shadow-color: #000;
-  shadow-offset: 0px 1px;
-  shadow-opacity: 0.05;
-  shadow-radius: 2px;
-`;
-
-const CommentUser = styled.Text`
-  font-size: 14px;
-  font-family: 'Roboto-Bold';
-  color: ${(props) => props.theme.text};
-  margin-bottom: 5px;
-`;
-
-const CommentContent = styled.Text`
-  font-size: 14px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-`;
-
-const CommentMeta = styled.Text`
-  font-size: 12px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-  opacity: 0.7;
-  margin-top: 5px;
-`;
-
-const SortButton = styled.TouchableOpacity`
-  flex-direction: row;
-  align-items: center;
-  padding: 5px 10px;
-  margin-bottom: 10px;
-`;
-
-const SortText = styled.Text`
-  font-size: 14px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-  margin-left: 5px;
-`;
-
-const Divider = styled.View`
-  height: 1px;
-  background-color: ${(props) => props.theme.text}10;
-  margin: 10px 0;
-`;
-
-const ErrorContainer = styled.View`
-  flex: 1;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-`;
-
-const ErrorText = styled.Text`
-  font-size: 16px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-  text-align: center;
-  margin-bottom: 10px;
-`;
-
-const RetryButton = styled.TouchableOpacity`
-  padding: 10px 20px;
-  background-color: ${(props) => props.theme.primary};
-  border-radius: 10px;
-`;
-
-const RetryButtonText = styled.Text`
-  font-size: 16px;
-  font-family: 'Roboto-Bold';
-  color: #ffffff;
-`;
-
-// New components for our restructured layout
-const NewsContent = styled.View`
-  padding-bottom: 15px;
-`;
-
-const CommentsHeader = styled.View`
-  padding: 10px 15px;
-  background-color: ${props => props.theme.cardBackground};
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
-`;
-
-const CommentsList = styled.View`
-  padding: 0 15px 20px 15px;
-`;
-
-const EmptyCommentText = styled.Text`
-  color: ${(props) => props.theme.text};
-  font-family: 'Roboto-Regular';
-  text-align: center;
-  padding: 20px;
-`;
-
-const LoadingContainer = styled.View`
-  flex: 1;
-  justify-content: center;
-  align-items: center;
-`;
 
 const NewsDetailScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -279,7 +42,12 @@ const NewsDetailScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [editImage, setEditImage] = useState<string | null>(null);
   const commentInputRef = useRef<TextInput>(null);
+  const titleInputRef = useRef<TextInput>(null);
 
   // Like animation
   const likeScale = useSharedValue(1);
@@ -287,10 +55,14 @@ const NewsDetailScreen = () => {
     transform: [{ scale: likeScale.value }],
   }));
 
+  // Edit mode animation
+  const editOpacity = useSharedValue(1);
+  const animatedEditStyle = useAnimatedStyle(() => ({
+    opacity: editOpacity.value,
+  }));
+
   const calculateReadTime = (content: string | undefined) => {
-    if (!content) {
-      return '0 min read'; // Return a default value if content is undefined
-    }
+    if (!content) return '0 min read';
     const words = content.split(/\s+/).length;
     const minutes = Math.ceil(words / 200);
     return `${minutes} min read`;
@@ -319,43 +91,33 @@ const NewsDetailScreen = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      // Try to find news item in the store
+
       let item = allNews.find((item) => item._id === newsId);
-      
-      // If not found in store, fetch directly from API
       if (!item) {
         console.log("News item not found in store, fetching from API...");
-        try {
-          // Add this function to your newsService.js
-          item = await fetchNewsById(newsId);
-        } catch (fetchError) {
-          console.error("Error fetching news by ID:", fetchError);
-          throw new Error('News item not found');
-        }
+        item = await fetchNewsById(newsId);
       }
-      
       if (!item) throw new Error('News item not found');
-      
-      // Increment view count if not viewed by user
+
       const updatedNews = await incrementViewCount(newsId, user?._id);
       setNewsItem(item);
+      setEditTitle(item.title);
+      setEditContent(item.content);
+      setEditImage(item.image || null);
       setLikeCount(updatedNews.likeCount || 0);
       setViewCount(updatedNews.viewCount || 0);
       setIsLiked(updatedNews.likedBy?.includes(user?._id) || false);
-      
-      // Update allNews in store
+
       const newsExists = allNews.some(n => n._id === newsId);
       if (newsExists) {
         setAllNews(allNews.map((n) => (n._id === newsId ? updatedNews : n)));
       } else {
         setAllNews([...allNews, updatedNews]);
       }
-      
-      // Fetch comments
+
       const fetchedComments = await fetchComments(newsId);
-      setComments(fetchedComments.sort((a:any, b:any) => 
-        sortOrder === 'newest' 
+      setComments(fetchedComments.sort((a: any, b: any) =>
+        sortOrder === 'newest'
           ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       ));
@@ -372,10 +134,9 @@ const NewsDetailScreen = () => {
   }, [newsId, user?._id]);
 
   useEffect(() => {
-    // Re-sort comments when sortOrder changes
     if (comments.length > 0) {
-      const sortedComments = [...comments].sort((a, b) => 
-        sortOrder === 'newest' 
+      const sortedComments = [...comments].sort((a, b) =>
+        sortOrder === 'newest'
           ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
@@ -411,9 +172,11 @@ const NewsDetailScreen = () => {
   };
 
   const handleLike = async () => {
-    likeScale.value = withSpring(1.2, {}, () => {
-      likeScale.value = withSpring(1);
-    });
+    // Start the animation
+    likeScale.value = withSpring(1.2);
+    likeScale.value = withSpring(1);
+
+    // Perform state update and API call on JS thread
     try {
       const updatedNews = await likeNews(newsId);
       setIsLiked(!isLiked);
@@ -452,8 +215,8 @@ const NewsDetailScreen = () => {
     }
     try {
       const newComment = await addComment(newsId, commentText);
-      setComments([newComment, ...comments].sort((a, b) => 
-        sortOrder === 'newest' 
+      setComments([newComment, ...comments].sort((a, b) =>
+        sortOrder === 'newest'
           ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       ));
@@ -482,6 +245,124 @@ const NewsDetailScreen = () => {
 
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest');
+  };
+
+  const toggleEditMode = () => {
+    // Update state first
+    if (isEditing) {
+      setEditTitle(newsItem.title);
+      setEditContent(newsItem.content);
+      setEditImage(newsItem.image);
+    } else {
+      setTimeout(() => titleInputRef.current?.focus(), 100);
+    }
+
+    // Animate
+    editOpacity.value = withSpring(0);
+    setTimeout(() => {
+      setIsEditing(!isEditing);
+      editOpacity.value = withSpring(1);
+    }, 200);
+  };
+
+  const handleImagePick = async () => {
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'photo',
+        maxWidth: 600,
+        maxHeight: 600,
+        quality: 0.8,
+      });
+      if (result.didCancel || !result.assets?.[0].uri) {
+        return;
+      }
+      const uri = result.assets[0].uri;
+      setEditImage(uri);
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to pick image',
+      });
+    }
+  };
+
+  const handleSave = async () => {
+    if (!editTitle.trim()) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Title is required',
+      });
+      return;
+    }
+    if (editTitle.length > 100) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Title must be 100 characters or less',
+      });
+      return;
+    }
+    if (!editContent.trim()) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Content is required',
+      });
+      return;
+    }
+    if (editContent.length > 5000) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Content must be 5000 characters or less',
+      });
+      return;
+    }
+
+    try {
+      let imagePath = newsItem.image;
+      if (editImage && !editImage.startsWith('http') && !editImage.startsWith('/assets')) {
+        const formData = new FormData();
+        formData.append('image', {
+          uri: editImage,
+          name: `news-${newsId}.jpg`,
+          type: 'image/jpeg',
+        } as any);
+        const { token } = useAppStore.getState();
+        const response = await fetch(`${BASE_URL}/api/news/upload-image`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Image upload failed');
+        imagePath = data.imagePath;
+      }
+
+      const updatedNews = await updateNews(newsId, {
+        title: editTitle,
+        content: editContent,
+        image: imagePath,
+      });
+      setNewsItem(updatedNews);
+      setAllNews(allNews.map((n) => (n._id === newsId ? updatedNews : n)));
+      setIsEditing(false);
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'News updated',
+      });
+    } catch (error: any) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message || 'Failed to update news',
+      });
+    }
   };
 
   const renderComment = (item: { _id: string; username: string; content: string; createdAt: string }) => (
@@ -528,53 +409,99 @@ const NewsDetailScreen = () => {
   return (
     <Container behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Header>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Go back">
           <Icon name="arrow-back" size={24} color={theme.text} />
         </TouchableOpacity>
-        <ActionButton onPress={handleArchive}>
-          <Icon name="archive" size={20} color={archivedNewsIds.includes(newsId) ? '#007BFF' : theme.text} />
-        </ActionButton>
+        <View style={{ flexDirection: 'row' }}>
+          {user?.role === 'admin' && (
+            <ActionButton onPress={toggleEditMode} accessibilityLabel={isEditing ? 'Cancel edit' : 'Edit news'}>
+              <Icon name={isEditing ? 'close' : 'pencil'} size={20} color={theme.text} />
+            </ActionButton>
+          )}
+          <ActionButton onPress={handleArchive} accessibilityLabel={archivedNewsIds.includes(newsId) ? 'Unarchive news' : 'Archive news'}>
+            <Icon name="archive" size={20} color={archivedNewsIds.includes(newsId) ? '#007BFF' : theme.text} />
+          </ActionButton>
+        </View>
       </Header>
-      
       <ScrollContainer>
         <NewsContent>
           <ImageContainer>
             <NewsImage
-              source={{ uri: resolveImageUrl(newsItem.image) }}
-              // resizeMode="cover"
+              source={{ uri: isEditing && editImage ? editImage : resolveImageUrl(newsItem.image) }}
               defaultSource={require('../assets/placeholder.png')}
             />
+            {isEditing && (
+              <Animated.View style={[animatedEditStyle, { position: 'absolute', bottom: 10, right: 10 }]}>
+                <TouchableOpacity onPress={handleImagePick} style={{ backgroundColor: '#007BFF', padding: 8, borderRadius: 8 }}>
+                  <Icon name="image" size={20} color="#fff" />
+                </TouchableOpacity>
+              </Animated.View>
+            )}
           </ImageContainer>
           <ContentContainer>
-            <Title>{newsItem.title}</Title>
-            <Meta>{newsItem.category} • {new Date(newsItem.createdAt).toLocaleDateString()}</Meta>
-            <ReadTime>{calculateReadTime(newsItem.content)}</ReadTime>
-            <ActionBar>
-              <ActionItem onPress={handleLike}>
-                <Animated.View style={animatedLikeStyle}>
-                  <Icon name={isLiked ? 'heart' : 'heart-outline'} size={20} color={isLiked ? '#007BFF' : theme.text} />
-                </Animated.View>
-                <ActionText>{likeCount} Likes</ActionText>
-              </ActionItem>
-              <ActionItem onPress={toggleCommentInput}>
-                <Icon name="chatbubble-outline" size={20} color={theme.text} />
-                <ActionText>{comments.length} Comments</ActionText>
-              </ActionItem>
-              <ActionItem>
-                <Icon name="eye-outline" size={20} color={theme.text} />
-                <ActionText>{viewCount} Views</ActionText>
-              </ActionItem>
-              <ActionItem onPress={handleShare}>
-                <Icon name="share-outline" size={20} color={theme.text} />
-              </ActionItem>
-            </ActionBar>
-            <Content>{newsItem.content}</Content>
+            {isEditing ? (
+              <Animated.View style={animatedEditStyle} entering={FadeIn} exiting={FadeOut}>
+                <CommentInput
+                  ref={titleInputRef}
+                  value={editTitle}
+                  onChangeText={setEditTitle}
+                  placeholder="Enter title..."
+                  placeholderTextColor={`${theme.text}80`}
+                  maxLength={100}
+                  style={{ fontSize: 20, fontFamily: 'Roboto-Bold', marginBottom: 12 }}
+                  accessibilityLabel="Edit title"
+                />
+                <CommentInput
+                  value={editContent}
+                  onChangeText={setEditContent}
+                  placeholder="Enter content..."
+                  placeholderTextColor={`${theme.text}80`}
+                  multiline
+                  maxLength={5000}
+                  style={{ minHeight: 200 }}
+                  accessibilityLabel="Edit content"
+                />
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 }}>
+                  <CommentButton onPress={handleSave} style={{ flex: 1, marginRight: 8 }}>
+                    <CommentButtonText>Save</CommentButtonText>
+                  </CommentButton>
+                  <CommentButton onPress={toggleEditMode} style={{ flex: 1, backgroundColor: '#6c757d' }}>
+                    <CommentButtonText>Cancel</CommentButtonText>
+                  </CommentButton>
+                </View>
+              </Animated.View>
+            ) : (
+              <Animated.View style={animatedEditStyle} entering={FadeIn} exiting={FadeOut}>
+                <Title>{newsItem.title}</Title>
+                <Meta>{newsItem.category} • {new Date(newsItem.createdAt).toLocaleDateString()}</Meta>
+                <ReadTime>{calculateReadTime(newsItem.content)}</ReadTime>
+                <ActionBar>
+                  <ActionItem onPress={handleLike} accessibilityLabel={isLiked ? 'Unlike news' : 'Like news'}>
+                    <Animated.View style={animatedLikeStyle}>
+                      <Icon name={isLiked ? 'heart' : 'heart-outline'} size={20} color={isLiked ? '#007BFF' : theme.text} />
+                    </Animated.View>
+                    <ActionText>{likeCount} Likes</ActionText>
+                  </ActionItem>
+                  <ActionItem onPress={toggleCommentInput} accessibilityLabel="View or add comment">
+                    <Icon name="chatbubble-outline" size={20} color={theme.text} />
+                    <ActionText>{comments.length} Comments</ActionText>
+                  </ActionItem>
+                  <ActionItem accessibilityLabel="View count">
+                    <Icon name="eye-outline" size={20} color={theme.text} />
+                    <ActionText>{viewCount} Views</ActionText>
+                  </ActionItem>
+                  <ActionItem onPress={handleShare} accessibilityLabel="Share news">
+                    <Icon name="share-outline" size={20} color={theme.text} />
+                  </ActionItem>
+                </ActionBar>
+                <Content>{newsItem.content}</Content>
+              </Animated.View>
+            )}
             <Divider />
           </ContentContainer>
         </NewsContent>
-        
         <CommentsHeader>
-          <SortButton onPress={toggleSortOrder}>
+          <SortButton onPress={toggleSortOrder} accessibilityLabel={`Sort comments by ${sortOrder === 'newest' ? 'oldest' : 'newest'}`}>
             <Icon name={sortOrder === 'newest' ? 'arrow-down' : 'arrow-up'} size={16} color={theme.text} />
             <SortText>Sort by {sortOrder === 'newest' ? 'Newest' : 'Oldest'}</SortText>
           </SortButton>
@@ -588,6 +515,7 @@ const NewsDetailScreen = () => {
                 onChangeText={setCommentText}
                 multiline
                 maxLength={500}
+                accessibilityLabel="Comment input"
               />
               <CommentButton onPress={handleAddComment}>
                 <CommentButtonText>Post Comment</CommentButtonText>
@@ -595,7 +523,6 @@ const NewsDetailScreen = () => {
             </CommentInputContainer>
           )}
         </CommentsHeader>
-        
         <CommentsList>
           {comments.length > 0 ? (
             comments.map(renderComment)

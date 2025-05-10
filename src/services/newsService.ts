@@ -194,3 +194,18 @@ export const fetchNewsById = async (newsId: string) => {
     throw new Error(error.message || 'Failed to fetch news item');
   }
 };
+
+export const updateNews = async (newsId: string, updates: { title: string; content: string; image?: string }) => {
+  const { token } = useAppStore.getState();
+  try {
+    const response = await axios.put(
+      `http://10.0.2.2:5000/api/news/${newsId}`,
+      updates,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error('Error updating news:', error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || 'Failed to update news');
+  }
+};

@@ -176,9 +176,9 @@ const HomeScreen = () => {
 
     try {
       // Update archive status in the backend
-      const action = isCurrentlyArchived ? 'unarchive' : 'archive';
+      // const action = isCurrentlyArchived ? 'unarchive' : 'archive';
       await axios.post(
-        `${BASE_URL}/api/userpreferences/${action}`,
+        `${BASE_URL}/api/news/toggle-archive`,
         { userId: user?._id, newsId: _id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
