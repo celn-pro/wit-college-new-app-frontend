@@ -34,18 +34,20 @@ export interface News {
 
 interface AppStore {
   user: User | null;
-  theme: 'light' | 'dark';
+  themeMode: 'system' | 'light' | 'dark';
   notifications: Notification[];
   allNews: News[];
+  lastUpdated: null;
   availableCategories: string[];
   token: string | null;
   archivedNewsIds: string[];
   setArchivedNewsIds: (ids: string[]) => void;
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
+  setThemeMode: (themeMode: 'system' | 'light' | 'dark') => void;
   toggleTheme: () => void;
   addNotification: (notification: Notification) => void;
-  setNotifications: (notifications: Notification[]) => void; 
+  setNotifications: (notifications: Notification[]) => void;
   markNotificationAsRead: (id: string) => void;
   markAllNotificationsAsRead: () => void;
   getUnreadCount: () => number;
@@ -57,14 +59,22 @@ interface AppStore {
 
 export const useAppStore = create<AppStore>((set, get) => ({
   user: null,
-  theme: 'light',
+  themeMode: 'system', // Default to system theme
   notifications: [],
   allNews: [],
+  lastUpdated: null,
   availableCategories: ['General', 'Sports', 'Events', 'Academics'],
   token: null,
   archivedNewsIds: [],
   setArchivedNewsIds: (ids) => set({ archivedNewsIds: ids }),
-  setUser: (user) => set({ user }),
+  setUser: async (user) => {
+    set({ user });
+    if (user) {
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+    } else {
+      await AsyncStorage.removeItem('user');
+    }
+  },
   setToken: async (token) => {
     set({ token });
     if (token) {
@@ -73,10 +83,39 @@ export const useAppStore = create<AppStore>((set, get) => ({
       await AsyncStorage.removeItem('authToken');
     }
   },
-  toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
+  setThemeMode: async (themeMode) => {
+    try {
+      await AsyncStorage.setItem('themeMode', themeMode);
+      set({ themeMode });
+    } catch (error) {
+      console.error('Error saving themeMode to AsyncStorage:', error);
+    }
+  },
+  toggleTheme: async () => {
+    set((state) => {
+      const modes: ('system' | 'light' | 'dark')[] = ['system', 'light', 'dark'];
+      const currentIndex = modes.indexOf(state.themeMode);
+      const newThemeMode = modes[(currentIndex + 1) % modes.length];
+      AsyncStorage.setItem('themeMode', newThemeMode).catch((error) =>
+        console.error('Error saving themeMode to AsyncStorage:', error)
+      );
+      return { themeMode: newThemeMode };
+    });
+  },
   addNotification: (notification) =>
-    set((state) => ({ notifications: [...state.notifications, notification] })),
-  setNotifications: (notifications) => set({ notifications }),
+    set((state) => {
+      const updatedNotifications = [...state.notifications, notification];
+      AsyncStorage.setItem('notifications', JSON.stringify(updatedNotifications)).catch((error) =>
+        console.error('Error saving notifications:', error)
+      );
+      return { notifications: updatedNotifications };
+    }),
+  setNotifications: (notifications) => {
+    AsyncStorage.setItem('notifications', JSON.stringify(notifications)).catch((error) =>
+      console.error('Error saving notifications:', error)
+    );
+    set({ notifications });
+  },
   markNotificationAsRead: (id) =>
     set((state) => ({
       notifications: state.notifications.map((notif) =>

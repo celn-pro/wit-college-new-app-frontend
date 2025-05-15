@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Animated, Easing, ScrollView, TextInput, TouchableOpacity } from 'react-native';
-import styled from '@emotion/native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, Animated, TextInput, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAppStore } from '../store';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
@@ -9,137 +9,29 @@ import { useTheme } from '../theme';
 import Toast from 'react-native-toast-message';
 import axios from 'axios';
 import { BASE_URL } from '../utils';
-
-interface RoleBadgeProps {
-  userRole: 'admin' | 'faculty' | 'student';
-}
-
-const Container = styled.ScrollView`
-  flex: 1;
-  background-color: ${(props) => props.theme.background};
-  padding: 20px;
-`;
-
-const Card = styled(Animated.View)`
-  background-color: ${(props) => props.theme.cardBackground};
-  border-radius: 15px;
-  padding: 20px;
-  margin-bottom: 15px;
-  elevation: 4;
-  shadow-color: #000;
-  shadow-offset: 0px 2px;
-  shadow-opacity: 0.1;
-  shadow-radius: 4px;
-`;
-
-const SectionTitle = styled.Text`
-  font-size: 18px;
-  font-family: 'Roboto-Bold';
-  color: ${(props) => props.theme.text};
-  margin-bottom: 10px;
-`;
-
-const Option = styled.TouchableOpacity`
-  flex-direction: row;
-  align-items: center;
-  padding: 15px;
-  background-color: ${(props) => props.theme.cardBackground};
-  border-radius: 10px;
-  margin-bottom: 10px;
-`;
-
-const OptionText = styled.Text`
-  font-size: 16px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-  flex: 1;
-`;
-
-const Input = styled.TextInput`
-  background-color: ${(props) => props.theme.cardBackground};
-  border-radius: 8px;
-  padding: 12px;
-  font-size: 16px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-  border: 1px solid ${(props) => props.theme.border};
-  margin-bottom: 10px;
-`;
-
-const ActionButton = styled.TouchableOpacity`
-  background-color: ${(props) => props.theme.primary};
-  border-radius: 8px;
-  padding: 15px;
-  align-items: center;
-  margin-top: 10px;
-`;
-
-const ActionText = styled.Text`
-  font-size: 16px;
-  font-family: 'Roboto-Bold';
-  color: #ffffff;
-`;
-
-const StatText = styled.Text`
-  font-size: 16px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-  margin-bottom: 5px;
-`;
-
-const RoleBadge = styled(Animated.View)<RoleBadgeProps>`
-  background-color: ${(props) => {
-    switch (props.userRole) {
-      case 'admin': return '#FF6B6B';
-      case 'faculty': return '#4ECDC4';
-      case 'student': return '#45B7D1';
-      default: return props.theme.primary;
-    }
-  }};
-  border-radius: 12px;
-  padding: 5px 10px;
-`;
-
-const RoleBadgeText = styled.Text`
-  font-size: 14px;
-  font-family: 'Roboto-Medium';
-  color: #ffffff;
-`;
-
-const UserItem = styled.View`
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  background-color: ${(props) => props.theme.cardBackground};
-  border-radius: 8px;
-  margin-bottom: 5px;
-`;
-
-const SearchInput = styled.TextInput`
-  background-color: ${(props) => props.theme.cardBackground};
-  border-radius: 8px;
-  padding: 12px;
-  font-size: 16px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-  border: 1px solid ${(props) => props.theme.border};
-  margin-bottom: 15px;
-`;
-
-const GradientHeader = styled.View`
-  background-color: ${(props) => props.theme.primary};
-  border-radius: 15px;
-  padding: 20px;
-  margin-bottom: 20px;
-`;
+import {
+  ContentContainer,
+  Card,
+  SectionTitle,
+  Option,
+  OptionText,
+  Input,
+  ActionButton,
+  ActionText,
+  StatText,
+  RoleBadge,
+  RoleBadgeText,
+  UserItem,
+  SearchInput,
+  GradientHeader,
+  PageContainer,
+} from '../styles/profileScreenStyles';
 
 const ProfileScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { user, theme, toggleTheme, token, archivedNewsIds, setUser } = useAppStore();
-  const { primary, text } = useTheme();
-  const [fadeAnim] = useState(new Animated.Value(0));
-  const [scaleAnim] = useState(new Animated.Value(0.9));
+  const { user, toggleTheme, themeMode, token, archivedNewsIds, setUser } = useAppStore();
+  const theme = useTheme();
+  const { primary, text } = theme;
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
@@ -152,12 +44,14 @@ const ProfileScreen = () => {
   const [stats, setStats] = useState({ newsCount: 0, userCount: 0, categoryStats: [] as { name: string; count: number }[] });
   const [showEmailPrompt, setShowEmailPrompt] = useState(!user?.email);
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 500,
-        easing: Easing.ease,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
@@ -317,6 +211,32 @@ const ProfileScreen = () => {
     }
   };
 
+  const getThemeDisplayText = () => {
+    switch (themeMode) {
+      case 'system':
+        return 'System';
+      case 'light':
+        return 'Light';
+      case 'dark':
+        return 'Dark';
+      default:
+        return 'System';
+    }
+  };
+
+  const getThemeIcon = () => {
+    switch (themeMode) {
+      case 'system':
+        return 'phone-portrait';
+      case 'light':
+        return 'sunny';
+      case 'dark':
+        return 'moon';
+      default:
+        return 'phone-portrait';
+    }
+  };
+
   const renderContent = () => {
     if (!user) {
       return (
@@ -373,8 +293,8 @@ const ProfileScreen = () => {
             onChangeText={setDisplayName}
           />
           <Option onPress={toggleTheme}>
-            <OptionText>Theme: {theme === 'light' ? 'Light' : 'Dark'}</OptionText>
-            <Icon name={theme === 'light' ? 'moon' : 'sunny'} size={20} color={text} />
+            <OptionText>Theme: {getThemeDisplayText()}</OptionText>
+            <Icon name={getThemeIcon()} size={20} color={text} />
           </Option>
           <ActionButton onPress={handleUpdateProfile}>
             <ActionText>Update Profile</ActionText>
@@ -507,7 +427,19 @@ const ProfileScreen = () => {
     );
   };
 
-  return <Container>{renderContent()}</Container>;
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+      <PageContainer>
+        <ContentContainer
+          contentContainerStyle={{
+            paddingBottom: 100,
+          }}
+        >
+          {renderContent()}
+        </ContentContainer>
+      </PageContainer>
+    </SafeAreaView>
+  );
 };
 
 export default ProfileScreen;

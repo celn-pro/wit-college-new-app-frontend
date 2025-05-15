@@ -1,9 +1,15 @@
 import styled from '@emotion/native';
-import { Dimensions, KeyboardAvoidingView } from 'react-native';
+import { Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export const Container = styled(KeyboardAvoidingView)`
+export const SafeContainer = styled(SafeAreaView)`
+  flex: 1;
+  background-color: ${(props) => props.theme.background};
+`;
+
+export const Container = styled.View`
   flex: 1;
   background-color: ${(props) => props.theme.background};
 `;
@@ -21,7 +27,6 @@ export const ScrollContainer = styled.ScrollView`
 `;
 
 export const ContentContainer = styled.View`
-  flex: 1;
   padding: 0 15px;
 `;
 
@@ -221,14 +226,13 @@ export const RetryButtonText = styled.Text`
   color: #ffffff;
 `;
 
-// New components for our restructured layout
 export const NewsContent = styled.View`
   padding-bottom: 15px;
 `;
 
 export const CommentsHeader = styled.View`
   padding: 10px 15px;
-  background-color: ${props => props.theme.cardBackground};
+  background-color: ${(props) => props.theme.cardBackground};
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
 `;
@@ -237,7 +241,6 @@ export const CommentsList = styled.View`
   padding: 0 15px 20px 15px;
 `;
 
-// Missing components that are used in the NewsDetailScreen file
 export const EmptyCommentText = styled.Text`
   font-size: 14px;
   font-family: 'Roboto-Regular';
@@ -251,4 +254,9 @@ export const LoadingContainer = styled.View`
   flex: 1;
   justify-content: center;
   align-items: center;
+`;
+
+export const ContentWrapper = styled.View`
+  flex: 1;
+  background-color: ${(props) => props.theme.background};
 `;

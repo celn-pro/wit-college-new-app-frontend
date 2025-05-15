@@ -11,6 +11,7 @@ interface NewsItem {
   image?: string;
   createdAt: string;
   role?: string;
+  updatedAt?: string;
 }
 
 export const toggleArchiveNews = async (newsId: string) => {
@@ -42,14 +43,24 @@ export const fetchUserPreferences = async () => {
   }
 };
 
-export const fetchNews = async (role: string, category: string = '', query: string = ''): Promise<NewsItem[]> => {
+export const fetchNews = async (
+  role: string,
+  category: string = '',
+  query: string = '',
+  since?: string
+): Promise<NewsItem[]> => {
   try {
     const token = useAppStore.getState().token;
-    console.log('Fetching news with role:', role, 'category:', category, 'query:', query, 'token:', token);
+    console.log('Fetching news with role:', role, 'category:', category, 'query:', query, 'since:', since, 'token:', token);
 
     const headers = {
       Authorization: token ? `Bearer ${token}` : '',
     };
+
+    const params: any = { role, category };
+    if (since) {
+      params.since = since;
+    }
 
     if (query) {
       const response = await axios.get(`${API_BASE_URL}/news/search`, {
@@ -61,7 +72,7 @@ export const fetchNews = async (role: string, category: string = '', query: stri
 
     const response = await axios.get(`${API_BASE_URL}/news`, {
       headers,
-      params: { role, category },
+      params,
     });
     return response.data;
   } catch (error: any) {
@@ -75,12 +86,16 @@ export const fetchNews = async (role: string, category: string = '', query: stri
   }
 };
 
-export const fetchArchivedNews = async (role: string) => {
+export const fetchArchivedNews = async (role: string, since?: string): Promise<NewsItem[]> => {
   const { token } = useAppStore.getState();
   try {
+    const params: any = { role };
+    if (since) {
+      params.since = since;
+    }
     const response = await axios.get(`${API_BASE_URL}/news/archived`, {
       headers: { Authorization: `Bearer ${token}` },
-      params: { role },
+      params,
     });
     return response.data;
   } catch (error: any) {
@@ -172,7 +187,7 @@ export const incrementViewCount = async (newsId: string, userId?: string) => {
 
 export const fetchNewsById = async (newsId: string) => {
   try {
-    const token = await AsyncStorage.getItem('userToken');
+    const token = await AsyncStorage.getItem('authToken');
     const response = await fetch(`${API_BASE_URL}/news/${newsId}`, {
       method: 'GET',
       headers: {
@@ -180,12 +195,12 @@ export const fetchNewsById = async (newsId: string) => {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
-    
+
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.message || 'Failed to fetch news item');
     }
-    
+
     return await response.json();
   } catch (error: any) {
     console.error('Error fetching news by ID:', error);

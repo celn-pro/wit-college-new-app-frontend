@@ -1,90 +1,13 @@
 import React, { useState } from 'react';
 import { View, Alert, Text } from 'react-native';
-import styled from '@emotion/native';
 import { useAppStore } from '../store';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../theme';
 import { BASE_URL } from '../utils';
-
-const Container = styled.View`
-  flex: 1;
-  background-color: ${(props) => props.theme.background};
-  padding: 20px;
-  justify-content: center;
-`;
-
-const Title = styled.Text`
-  font-size: 28px;
-  font-family: 'Roboto-Bold';
-  color: ${(props) => props.theme.text};
-  margin-bottom: 20px;
-  text-align: center;
-`;
-
-const Input = styled.TextInput`
-  background-color: ${(props) => props.theme.cardBackground};
-  border-radius: 10px;
-  padding: 15px;
-  margin-bottom: 15px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-`;
-
-const RoleButton = styled.TouchableOpacity<{ selected: boolean }>`
-  background-color: ${(props) => (props.selected ? props.theme.primary : props.theme.cardBackground)};
-  border-radius: 10px;
-  padding: 15px;
-  margin-bottom: 10px;
-  align-items: center;
-`;
-
-const RoleText = styled.Text`
-  font-size: 16px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-`;
-
-const ActionButton = styled.TouchableOpacity`
-  background-color: ${(props) => props.theme.primary};
-  border-radius: 10px;
-  padding: 15px;
-  align-items: center;
-  margin-top: 20px;
-`;
-
-const ActionText = styled.Text`
-  font-size: 16px;
-  font-family: 'Roboto-Bold';
-  color: #ffffff;
-`;
-
-const SwitchMode = styled.TouchableOpacity`
-  margin-top: 15px;
-  align-items: center;
-`;
-
-const SwitchModeText = styled.Text`
-  font-size: 14px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
-  text-decoration-line: underline;
-`;
-
-const RoleLabel = styled.Text`
-  font-size: 16px;
-  font-family: 'Roboto-Medium';
-  color: ${(props) => props.theme.text};
-  margin-bottom: 10px;
-`;
-
-const NoteText = styled.Text`
-  font-size: 14px;
-  font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text + '80'};
-  margin-bottom: 15px;
-  text-align: center;
-`;
+import { Title, Container,Input,RoleButton,RoleText,ActionButton,ActionText,SwitchMode,SwitchModeText,
+  RoleLabel,NoteText } from '../styles/authScreenStyles';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AuthScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -133,6 +56,10 @@ const AuthScreen = () => {
       const data = await response.json();
 
       if (!response.ok) throw new Error(data.message || 'Authentication failed');
+
+      // Inside handleAuth success block:
+      await AsyncStorage.setItem('authToken', data.token);
+      await AsyncStorage.setItem('user', JSON.stringify(data.user));
 
       setUser(data.user);
       setToken(data.token);

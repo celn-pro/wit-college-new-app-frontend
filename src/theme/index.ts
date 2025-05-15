@@ -1,4 +1,5 @@
 import { useColorScheme } from 'react-native';
+import { useAppStore } from '../store';
 
 export const lightTheme = {
   background: '#FFFFFF',
@@ -6,7 +7,7 @@ export const lightTheme = {
   primary: '#007AFF',
   secondary: '#5856D6',
   cardBackground: '#F5F5F5',
-  border: '#E0E0E0', // Added border property
+  border: '#E0E0E0',
   font: {
     regular: 'System',
     bold: 'System',
@@ -26,7 +27,7 @@ export const darkTheme = {
   primary: '#0A84FF',
   secondary: '#5E5CE6',
   cardBackground: '#2C2C2E',
-  border: '#3A3A3C', // Added border property
+  border: '#3A3A3C',
   font: {
     regular: 'System',
     bold: 'System',
@@ -41,6 +42,10 @@ export const darkTheme = {
 };
 
 export const useTheme = () => {
-  const scheme = useColorScheme();
-  return scheme === 'dark' ? darkTheme : lightTheme;
+  const { themeMode } = useAppStore();
+  const systemTheme = useColorScheme();
+  if (themeMode === 'system') {
+    return systemTheme === 'dark' ? darkTheme : lightTheme;
+  }
+  return themeMode === 'dark' ? darkTheme : lightTheme;
 };

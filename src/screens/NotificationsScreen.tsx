@@ -9,26 +9,99 @@ import { useTheme } from '../theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { BASE_URL } from '../utils';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const SafeContainer = styled(SafeAreaView)`flex: 1; background-color: ${(props) => props.theme.background};`;
-const Header = styled.View`flex-direction: row; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: ${(props) => props.theme.cardBackground};`;
-const HeaderTitle = styled.Text`font-size: 22px; font-family: 'Roboto-Bold'; color: ${(props) => props.theme.text};`;
-const NotificationCard = styled.TouchableOpacity`flex-direction: row; padding: 15px 20px; border-bottom-width: 1px; border-bottom-color: ${(props) => props.theme.cardBackground}; background-color: ${(props: any) => (props.read ? props.theme.background : '#f0f0f0')};`;
-const NotificationContent = styled.View`flex: 1;`;
-const NotificationTitle = styled.Text`font-size: 16px; font-family: 'Roboto-Bold'; color: ${(props) => props.theme.text}; margin-bottom: 5px;`;
-const NotificationBody = styled.Text`font-size: 14px; font-family: 'Roboto-Regular'; color: ${(props) => props.theme.text}; margin-bottom: 5px;`;
-const NotificationMeta = styled.Text`font-size: 12px; font-family: 'Roboto-Regular'; color: ${(props) => props.theme.text}; opacity: 0.7;`;
-const EmptyStateContainer = styled.View`flex: 1; justify-content: center; align-items: center;`;
-const EmptyStateText = styled.Text`font-size: 16px; font-family: 'Roboto-Regular'; color: ${(props) => props.theme.text};`;
-const MarkAllButton = styled.TouchableOpacity`padding: 8px 16px; background-color: ${(props) => props.theme.primary}; border-radius: 20px;`;
-const MarkAllText = styled.Text`font-size: 14px; font-family: 'Roboto-Bold'; color: #ffffff;`;
+const SafeContainer = styled(SafeAreaView)`
+  flex: 1; 
+  background-color: ${(props) => props.theme.background};
+  /* Adding this to ensure content respects safe area but isn't constrained by bottom */
+  edges: ['top', 'left', 'right'];
+`;
+
+const ContentContainer = styled.View<{ bottomInset: number }>`
+  flex: 1;
+  padding-bottom: ${(props) => props.bottomInset}px;
+`;
+
+const Header = styled.View`
+  flex-direction: row; 
+  justify-content: space-between; 
+  align-items: center; 
+  padding: 15px 20px; 
+  background-color: ${(props) => props.theme.cardBackground};
+`;
+
+const HeaderTitle = styled.Text`
+  font-size: 22px; 
+  font-family: 'Roboto-Bold'; 
+  color: ${(props) => props.theme.text};
+`;
+
+const NotificationCard = styled.TouchableOpacity<{ read: boolean }>`
+  flex-direction: row; 
+  padding: 15px 20px; 
+  border-bottom-width: 1px; 
+  border-bottom-color: ${(props) => props.theme.cardBackground}; 
+  background-color: ${(props) => (props.read ? props.theme.background : '#f0f0f0')};
+`;
+
+const NotificationContent = styled.View`
+  flex: 1;
+`;
+
+const NotificationTitle = styled.Text`
+  font-size: 16px; 
+  font-family: 'Roboto-Bold'; 
+  color: ${(props) => props.theme.text}; 
+  margin-bottom: 5px;
+`;
+
+const NotificationBody = styled.Text`
+  font-size: 14px; 
+  font-family: 'Roboto-Regular'; 
+  color: ${(props) => props.theme.text}; 
+  margin-bottom: 5px;
+`;
+
+const NotificationMeta = styled.Text`
+  font-size: 12px; 
+  font-family: 'Roboto-Regular'; 
+  color: ${(props) => props.theme.text}; 
+  opacity: 0.7;
+`;
+
+const EmptyStateContainer = styled.View<{ bottomInset: number }>`
+  flex: 1; 
+  justify-content: center; 
+  align-items: center;
+  padding-bottom: ${(props) => props.bottomInset}px;
+`;
+
+const EmptyStateText = styled.Text`
+  font-size: 16px; 
+  font-family: 'Roboto-Regular'; 
+  color: ${(props) => props.theme.text};
+`;
+
+const MarkAllButton = styled.TouchableOpacity`
+  padding: 8px 16px; 
+  background-color: ${(props) => props.theme.primary}; 
+  border-radius: 20px;
+`;
+
+const MarkAllText = styled.Text`
+  font-size: 14px; 
+  font-family: 'Roboto-Bold'; 
+  color: #ffffff;
+`;
 
 const NotificationsScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { notifications, token, markNotificationAsRead, markAllNotificationsAsRead, getUnreadCount } = useAppStore();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
-  const handleNotificationPress = async (notification: any) => {
+  const handleNotificationPress = async (notification: { _id: string; read: boolean; newsId?: string; title: string; body: string; createdAt: string }) => {
     if (!notification.read) {
       try {
         const response = await fetch(`${BASE_URL}/api/notifications/mark-read/${notification._id}`, {
@@ -77,7 +150,17 @@ const NotificationsScreen = () => {
     }
   };
 
-  const renderNotification = ({ item }: { item: any }) => (
+  // Define the type for a notification
+  interface Notification {
+    _id: string;
+    read: boolean;
+    newsId?: string;
+    title: string;
+    body: string;
+    createdAt: string;
+  }
+  
+  const renderNotification = ({ item }: { item: Notification }) => (
     <NotificationCard read={item.read} onPress={() => handleNotificationPress(item)}>
       <NotificationContent>
         <NotificationTitle>{item.title}</NotificationTitle>
@@ -105,14 +188,18 @@ const NotificationsScreen = () => {
           </MarkAllButton>
         )}
       </Header>
+      
       {notifications.length > 0 ? (
-        <FlatList
-          data={notifications}
-          renderItem={renderNotification}
-          keyExtractor={(item) => item._id}
-        />
+        <ContentContainer bottomInset={insets.bottom}>
+          <FlatList
+            data={notifications}
+            renderItem={renderNotification}
+            keyExtractor={(item) => item._id}
+            contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 20) }}
+          />
+        </ContentContainer>
       ) : (
-        <EmptyStateContainer>
+        <EmptyStateContainer bottomInset={insets.bottom}>
           <EmptyStateText>No notifications yet.</EmptyStateText>
         </EmptyStateContainer>
       )}

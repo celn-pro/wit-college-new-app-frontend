@@ -5,16 +5,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import notifee, { AndroidImportance } from '@notifee/react-native';
+import { useAppStore } from './src/store';
 import { useTheme } from './src/theme';
 import Navigation from './src/navigation';
-import { useAppStore } from './src/store';
 import io from 'socket.io-client';
-// import SplashScreen from 'react-native-splash-screen';
+import { BASE_URL } from './src/utils';
 
 enableScreens();
-const BASE_URL = 'http://10.0.2.2:5000';
 
-// Create a notification channel for Android
 async function createNotificationChannel() {
   if (Platform.OS === 'android') {
     await notifee.createChannel({
@@ -26,63 +24,68 @@ async function createNotificationChannel() {
 }
 
 const App = () => {
+  const { user, token, setToken, addNotification, setNotifications, setUser, setThemeMode } = useAppStore();
   const theme = useTheme();
-  const { user, token, setToken, addNotification, setNotifications } = useAppStore();
 
+  // Initialize app state, including theme
   useEffect(() => {
-    // Create notification channel on app start
     createNotificationChannel();
-    
-    // Load token and notifications from AsyncStorage
+
+    if (Platform.OS === 'ios') {
+      notifee.requestPermission();
+    }
+
     const initialize = async () => {
-      const token = await AsyncStorage.getItem('authToken');
-      if (token) {
-        setToken(token);
-      }
-      
-      const storedNotifications = await AsyncStorage.getItem('notifications');
-      if (storedNotifications) {
-        setNotifications(JSON.parse(storedNotifications));
+      try {
+        const [storedToken, userData, storedNotifications, storedThemeMode] = await Promise.all([
+          AsyncStorage.getItem('authToken'),
+          AsyncStorage.getItem('user'),
+          AsyncStorage.getItem('notifications'),
+          AsyncStorage.getItem('themeMode'),
+        ]);
+
+        if (storedToken) await setToken(storedToken);
+        if (userData) await setUser(JSON.parse(userData));
+        if (storedNotifications) {
+          setNotifications(JSON.parse(storedNotifications));
+        }
+        if (storedThemeMode && ['system', 'light', 'dark'].includes(storedThemeMode)) {
+          setThemeMode(storedThemeMode as 'system' | 'light' | 'dark');
+        }
+      } catch (error) {
+        console.error('Initialization error:', error);
       }
     };
+
     initialize();
+  }, []);
 
-    // Request notification permissions on iOS
-    const requestPermissions = async () => {
-      if (Platform.OS === 'ios') {
-        await notifee.requestPermission();
-      }
-    };
-    requestPermissions();
+  // Handle socket connections and notifications
+  useEffect(() => {
+    if (!user || !token) return;
 
-    // Initialize Socket.IO
     const socket = io(BASE_URL, { transports: ['websocket'] });
-    
+
     socket.on('connect', () => {
       console.log('Connected to Socket.IO server');
-      if (user?._id) {
-        socket.emit('join', user._id);
-      }
+      socket.emit('join', user._id);
     });
-    
+
     socket.on('notification', (notification: any) => {
-      if (notification.userId === user?._id) {
+      if (notification.userId === user._id) {
         addNotification(notification);
-        
-        // Display the notification if app is not in foreground on iOS or always on Android
+
         if (Platform.OS !== 'ios' || AppState.currentState === 'active') {
           displayNotification(notification);
         }
       }
     });
-    
+
     socket.on('disconnect', () => {
       console.log('Disconnected from Socket.IO server');
     });
 
-    // Fetch notifications on app start
     const fetchNotifications = async () => {
-      if (!token || !user) return;
       try {
         const response = await fetch(`${BASE_URL}/api/notifications`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -93,19 +96,15 @@ const App = () => {
         console.error('Error fetching notifications:', error);
       }
     };
-    fetchNotifications();
-    // SplashScreen.hide();
 
-    // Cleanup on unmount
+    fetchNotifications();
+
     return () => {
       socket.disconnect();
     };
+  }, [user?._id, token]);
 
-
-  }, [user, token, setToken, addNotification, setNotifications]);
-
-  // Function to display a notification
-  const displayNotification = async (notification:any) => {
+  const displayNotification = async (notification: any) => {
     await notifee.displayNotification({
       title: notification.title,
       body: notification.body,

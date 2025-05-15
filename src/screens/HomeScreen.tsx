@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { FlatList, TouchableOpacity, View, Text, ActivityIndicator, StatusBar, Dimensions } from 'react-native';
-import styled from '@emotion/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchNews, toggleArchiveNews, fetchUserPreferences } from '../services/newsService';
@@ -8,11 +7,44 @@ import { useAppStore, News } from '../store';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../theme';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Carousel from 'react-native-reanimated-carousel';
 import Toast from 'react-native-toast-message';
 import axios from 'axios';
 import { BASE_URL } from '../utils';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  Header,
+  SafeContainer,
+  HeaderTitle,
+  CategoryList,
+  CategoryButton,
+  CategoryText,
+  FeaturedCarouselContainer,
+  FixedContentContainer,
+  ScrollableContentContainer,
+  FeaturedCard,
+  FeaturedImage,
+  FeaturedOverlay,
+  FeaturedTitle,
+  NewsListContainer,
+  NewsCard,
+  NewsImage,
+  NewsContent,
+  NewsTitle,
+  NewsDescription,
+  NewsMeta,
+  ActionButton,
+  LoadingContainer,
+  ErrorText,
+  IconContainer,
+  NotificationIconContainer,
+  Badge,
+  BadgeText,
+  EmptyStateContainer,
+  EmptyStateText,
+  ManageCategoriesButton,
+  ManageCategoriesText,
+} from '../styles/homeScreenStyles';
 
 const resolveImageUrl = (imagePath: string) => {
   if (!imagePath) return 'https://picsum.photos/seed/default-news/200/200';
@@ -20,43 +52,12 @@ const resolveImageUrl = (imagePath: string) => {
   return imagePath;
 };
 
-interface CategoryButtonProps {
-  selected: boolean;
-}
-
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const SafeContainer = styled(SafeAreaView)`flex: 1; background-color: ${(props) => props.theme.background};`;
-const Header = styled.View`flex-direction: row; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: ${(props) => props.theme.cardBackground};`;
-const HeaderTitle = styled.Text`font-size: 22px; font-family: 'Roboto-Bold'; color: ${(props) => props.theme.text};`;
-const CategoryList = styled(FlatList<string>)`padding: 10px 0; margin-horizontal: 10px;`;
-const CategoryButton = styled.TouchableOpacity<CategoryButtonProps>`background-color: ${(props) => (props.selected ? props.theme.primary : props.theme.cardBackground)}; padding: 8px 16px; border-radius: 20px; margin-right: 10px; min-width: 80px; align-items: center; height: 40px;`;
-const CategoryText = styled.Text`font-size: 14px; font-family: 'Roboto-Regular'; color: ${(props) => props.theme.text}; text-align: center;`;
-const FeaturedCarouselContainer = styled.View`margin: 15px 15px 0 15px; border-radius: 10px; overflow: hidden;`;
-const FixedContentContainer = styled.View`background-color: ${(props) => props.theme.background};`;
-const ScrollableContentContainer = styled.ScrollView`flex: 1; background-color: ${(props) => props.theme.background};`;
-const FeaturedCard = styled.TouchableOpacity`width: ${SCREEN_WIDTH - 30}px; height: 200px; border-radius: 10px; overflow: hidden; background-color: ${(props) => props.theme.cardBackground}; elevation: 3; shadow-color: #000; shadow-offset: 0px 2px; shadow-opacity: 0.1; shadow-radius: 3px;`;
-const FeaturedImage = styled.Image`width: 100%; height: 100%;`;
-const FeaturedOverlay = styled.View`position: absolute; bottom: 0; left: 0; right: 0; padding: 15px; background-color: rgba(0, 0, 0, 0.5);`;
-const FeaturedTitle = styled.Text`font-size: 18px; font-family: 'Roboto-Bold'; color: #ffffff;`;
-const NewsListContainer = styled.View`margin-top: 15px; flex: 1;`;
-const NewsCard = styled.TouchableOpacity`flex-direction: row; padding: 15px 20px; border-bottom-width: 1px; border-bottom-color: ${(props) => props.theme.cardBackground};`;
-const NewsImage = styled.Image`width: 80px; height: 80px; border-radius: 5px; margin-right: 15px;`;
-const NewsContent = styled.View`flex: 1;`;
-const NewsTitle = styled.Text`font-size: 16px; font-family: 'Roboto-Bold'; color: ${(props) => props.theme.text}; margin-bottom: 5px;`;
-const NewsDescription = styled.Text`font-size: 14px; font-family: 'Roboto-Regular'; color: ${(props) => props.theme.text}; margin-bottom: 5px;`;
-const NewsMeta = styled.Text`font-size: 12px; font-family: 'Roboto-Regular'; color: ${(props) => props.theme.text}; opacity: 0.7;`;
-const ActionButton = styled.TouchableOpacity`padding: 5px; margin-left: 10px;`;
-const LoadingContainer = styled.View`flex: 1; justify-content: center; align-items: center;`;
-const ErrorText = styled.Text`font-size: 16px; font-family: 'Roboto-Regular'; color: ${(props) => props.theme.text}; text-align: center; margin: 20px;`;
-const IconContainer = styled.View`flex-direction: row; width: 120px; justify-content: space-between; margin-left: 10px;`;
-const NotificationIconContainer = styled.View`position: relative;`;
-const Badge = styled.View`position: absolute; top: -5px; right: -5px; background-color: #ff0000; border-radius: 10px; min-width: 20px; height: 20px; justify-content: center; align-items: center; padding: 2px;`;
-const BadgeText = styled.Text`font-family: 'Roboto-Regular'; color: #ffffff; font-size: 12px; font-weight: bold;`;
-const EmptyStateContainer = styled.View`padding: 40px 20px; align-items: center;`;
-const EmptyStateText = styled.Text`font-size: 16px; font-family: 'Roboto-Regular'; color: ${(props) => props.theme.text}; text-align: center; margin-top: 10px;`;
-const ManageCategoriesButton = styled.TouchableOpacity`margin-top: 15px; padding: 10px 15px; background-color: ${(props) => props.theme.primary}; border-radius: 10px;`;
-const ManageCategoriesText = styled.Text`font-size: 14px; font-family: 'Roboto-Bold'; color: #ffffff;`;
+// Cache keys
+const NEWS_CACHE_KEY = 'news_cache';
+const LAST_FETCHED_KEY = 'last_fetched';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 const HomeScreen = () => {
   const [news, setNews] = useState<News[]>([]);
@@ -68,16 +69,53 @@ const HomeScreen = () => {
   const { user, token, availableCategories, setAllNews, allNews, archivedNewsIds, setArchivedNewsIds, getUnreadCount } = useAppStore();
   const theme = useTheme();
   const [userPreferences, setUserPreferences] = useState<any>(null);
+  const insets = useSafeAreaInsets();
 
-  const loadData = async () => {
+  const loadCachedData = async () => {
+    try {
+      const cachedNews = await AsyncStorage.getItem(NEWS_CACHE_KEY);
+      const lastFetched = await AsyncStorage.getItem(LAST_FETCHED_KEY);
+      if (cachedNews && lastFetched) {
+        const parsedNews = JSON.parse(cachedNews);
+        const lastFetchedTime = parseInt(lastFetched, 10);
+        const now = Date.now();
+        // Use cache if it's within the cache duration
+        if (now - lastFetchedTime < CACHE_DURATION) {
+          setAllNews(parsedNews);
+          setNews(selectedCategory === 'All' ? parsedNews : parsedNews.filter((item: News) => item.category === selectedCategory));
+          return true;
+        }
+      }
+      return false;
+    } catch (err) {
+      console.error('Error loading cached data:', err);
+      return false;
+    }
+  };
+
+  const saveCachedData = async (newsData: News[]) => {
+    try {
+      await AsyncStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(newsData));
+      await AsyncStorage.setItem(LAST_FETCHED_KEY, Date.now().toString());
+    } catch (err) {
+      console.error('Error saving cached data:', err);
+    }
+  };
+
+  const loadData = async (forceFetch: boolean = false) => {
     try {
       setLoading(true);
       setError(null);
 
+      // Try to load from cache first, unless forceFetch is true
+      if (!forceFetch && await loadCachedData()) {
+        setLoading(false);
+        return;
+      }
+
       // Fetch user preferences including categories and archived news IDs
       let preferences;
       try {
-        // First try to get from userpreferences endpoint
         const preferencesResponse = await axios.get(
           `${BASE_URL}/api/userpreferences/${user?._id}`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -85,7 +123,6 @@ const HomeScreen = () => {
         preferences = preferencesResponse.data;
       } catch (prefError) {
         console.error('Error fetching from userpreferences:', prefError);
-        // Fallback to legacy endpoint
         preferences = await fetchUserPreferences();
       }
       
@@ -95,25 +132,21 @@ const HomeScreen = () => {
 
       // Set up categories based on user preferences or default to 'All'
       let userCategories = preferences?.selectedCategories || [];
-      
-      // Admin always sees 'All', 'Deadline', and 'Achievements'
       let filteredCategories = ['All'];
       
       if (user?.isAdmin) {
         filteredCategories = ['All', 'Deadline', 'Achievements', ...userCategories];
       } else {
-        // Regular users only see their selected categories, with 'All' as default
         filteredCategories = ['All', ...userCategories];
       }
       
-      // Remove duplicates
       filteredCategories = [...new Set(filteredCategories)];
       setCategories(filteredCategories);
 
       // Fetch news
       const newsData = await fetchNews(user?.role || 'user', '');
       
-      // Ensure the data conforms to the News interface by adding default values for missing properties
+      // Ensure the data conforms to the News interface
       const completeNewsData: News[] = newsData.map((item: any) => ({
         _id: item._id,
         title: item.title,
@@ -128,6 +161,8 @@ const HomeScreen = () => {
         likedBy: item.likedBy || [],
       }));
       
+      // Save to cache and store
+      await saveCachedData(completeNewsData);
       setAllNews(completeNewsData);
 
       if (selectedCategory === 'All') {
@@ -147,11 +182,14 @@ const HomeScreen = () => {
     loadData();
   }, [user, setAllNews, availableCategories, setArchivedNewsIds]);
 
-  // Re-fetch on screen focus
+  // Re-fetch on screen focus only if cache is stale
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      console.log('HomeScreen focused, re-fetching data');
-      loadData();
+    const unsubscribe = navigation.addListener('focus', async () => {
+      console.log('HomeScreen focused, checking cache');
+      const lastFetched = await AsyncStorage.getItem(LAST_FETCHED_KEY);
+      const now = Date.now();
+      const shouldFetch = !lastFetched || (now - parseInt(lastFetched, 10) >= CACHE_DURATION);
+      loadData(shouldFetch);
     });
     return unsubscribe;
   }, [navigation, user]);
@@ -174,8 +212,6 @@ const HomeScreen = () => {
     setArchivedNewsIds(newArchivedNewsIds);
 
     try {
-      // Update archive status in the backend
-      // const action = isCurrentlyArchived ? 'unarchive' : 'archive';
       await axios.post(
         `${BASE_URL}/api/news/toggle-archive`,
         { userId: user?._id, newsId: _id },
@@ -189,7 +225,6 @@ const HomeScreen = () => {
       });
     } catch (error: any) {
       console.error('Archive toggle failed:', error);
-      // Revert the UI change if the API call fails
       setArchivedNewsIds(
         isCurrentlyArchived
           ? [...archivedNewsIds, _id]
@@ -267,20 +302,22 @@ const HomeScreen = () => {
           horizontal
           showsHorizontalScrollIndicator={false}
         />
-        {user?.isAdmin && <TouchableOpacity 
-          onPress={navigateToCategories}
-          style={{ 
-            marginRight: 10,
-            backgroundColor: theme.cardBackground,
-            padding: 8,
-            borderRadius: 20,
-            height: 40,
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}
-        >
-          <Icon name="settings-outline" size={20} color={theme.text} />
-        </TouchableOpacity>}
+        {user?.isAdmin && (
+          <TouchableOpacity
+            onPress={navigateToCategories}
+            style={{
+              marginRight: 10,
+              backgroundColor: theme.cardBackground,
+              padding: 8,
+              borderRadius: 20,
+              height: 40,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Icon name="settings-outline" size={20} color={theme.text} />
+          </TouchableOpacity>
+        )}
       </View>
     </>
   );
@@ -291,11 +328,11 @@ const HomeScreen = () => {
         <Icon name="newspaper-outline" size={50} color={theme.text} />
       </View>
       <EmptyStateText>
-        {categories.length <= 1 
-          ? "You haven't selected any categories yet" 
-          : "No news available for this category"}
+        {categories.length <= 1
+          ? "You haven't selected any categories yet"
+          : 'No news available for this category'}
       </EmptyStateText>
-      
+
       {categories.length <= 1 && (
         <ManageCategoriesButton onPress={navigateToCategories}>
           <ManageCategoriesText>Select Categories</ManageCategoriesText>
@@ -306,8 +343,11 @@ const HomeScreen = () => {
 
   if (loading) {
     return (
-      <SafeContainer>
-        <StatusBar barStyle={theme.text === '#FFFFFF' ? 'light-content' : 'dark-content'} backgroundColor={theme.cardBackground} />
+      <SafeContainer edges={['top', 'left', 'right']}>
+        <StatusBar
+          barStyle={theme.text === '#FFFFFF' ? 'light-content' : 'dark-content'}
+          backgroundColor={theme.cardBackground}
+        />
         {renderHeaderAndCategories()}
         <LoadingContainer>
           <ActivityIndicator size="large" color={theme.primary} />
@@ -318,8 +358,11 @@ const HomeScreen = () => {
 
   if (error) {
     return (
-      <SafeContainer>
-        <StatusBar barStyle={theme.text === '#FFFFFF' ? 'light-content' : 'dark-content'} backgroundColor={theme.cardBackground} />
+      <SafeContainer edges={['top', 'left', 'right']}>
+        <StatusBar
+          barStyle={theme.text === '#FFFFFF' ? 'light-content' : 'dark-content'}
+          backgroundColor={theme.cardBackground}
+        />
         {renderHeaderAndCategories()}
         <LoadingContainer>
           <ErrorText>{error}</ErrorText>
@@ -329,8 +372,11 @@ const HomeScreen = () => {
   }
 
   return (
-    <SafeContainer>
-      <StatusBar barStyle={theme.text === '#FFFFFF' ? 'light-content' : 'dark-content'} backgroundColor={theme.cardBackground} />
+    <SafeContainer edges={['top', 'left', 'right']}>
+      <StatusBar
+        barStyle={theme.text === '#FFFFFF' ? 'light-content' : 'dark-content'}
+        backgroundColor={theme.cardBackground}
+      />
       <FixedContentContainer>
         {renderHeaderAndCategories()}
         {allNews.length > 0 && (
@@ -348,7 +394,7 @@ const HomeScreen = () => {
           </FeaturedCarouselContainer>
         )}
       </FixedContentContainer>
-      <ScrollableContentContainer>
+      <ScrollableContentContainer contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
         <NewsListContainer>
           {news.length > 0 ? (
             news.map((item) => (
@@ -362,11 +408,17 @@ const HomeScreen = () => {
                   <NewsDescription numberOfLines={2}>{item.content}</NewsDescription>
                   <NewsMeta>{item.category} • {new Date(item.createdAt).toLocaleDateString()}</NewsMeta>
                 </NewsContent>
-                <ActionButton onPress={(e) => {
-                  e.stopPropagation();
-                  handleToggleArchive(item._id);
-                }}>
-                  <Icon name="archive" size={20} color={archivedNewsIds.includes(item._id) ? '#007BFF' : theme.text} />
+                <ActionButton
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleToggleArchive(item._id);
+                  }}
+                >
+                  <Icon
+                    name="archive"
+                    size={20}
+                    color={archivedNewsIds.includes(item._id) ? '#007BFF' : theme.text}
+                  />
                 </ActionButton>
               </NewsCard>
             ))

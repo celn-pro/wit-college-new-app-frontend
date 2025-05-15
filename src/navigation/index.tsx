@@ -13,7 +13,7 @@ import ArchiveScreen from '../screens/ArchiveScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import AuthScreen from '../screens/AuthScreen';
 import CreateScreen from '../screens/Createscreen';
-import { useAppStore } from '../store';
+import { useAppStore} from '../store';
 
 export type RootStackParamList = {
   Auth: undefined;
@@ -91,39 +91,22 @@ const MainTabs = () => {
 };
 
 const Navigation = () => {
+  const {user} = useAppStore();
+
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Auth">
-        <Stack.Screen
-          name="Auth"
-          component={AuthScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="CategorySelection"
-          component={CategorySelectionScreen}
-          options={{ title: 'Select Category', headerShown: false }}
-        />
-        <Stack.Screen
-          name="Home"
-          component={MainTabs}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="NewsDetail"
-          component={NewsDetailScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Search"
-          component={SearchScreen}
-          options={{ title: 'Search News' }}
-        />
-        <Stack.Screen 
-          name="Archive" 
-          component={ArchiveScreen} 
-          options={{ title: 'Archived News' }} 
-        />
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!user ? (
+          <Stack.Screen name="Auth" component={AuthScreen} />
+        ) : (
+          <>
+            <Stack.Screen name="Home" component={MainTabs} />
+            <Stack.Screen name="CategorySelection" component={CategorySelectionScreen} />
+            <Stack.Screen name="NewsDetail" component={NewsDetailScreen} />
+            <Stack.Screen name="Search" component={SearchScreen} />
+            <Stack.Screen name="Archive" component={ArchiveScreen} />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -1,21 +1,71 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { TouchableOpacity, Image, View, Text, TextInput, FlatList, KeyboardAvoidingView, Platform, Share, ActivityIndicator } from 'react-native';
+import {
+  TouchableOpacity,
+  Image,
+  View,
+  Text,
+  TextInput,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Share,
+  ActivityIndicator,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'; // Import useSafeAreaInsets
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAppStore } from '../store';
 import { useNavigation, useRoute, NavigationProp, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../theme';
-import { toggleArchiveNews, addComment, likeNews, fetchComments, incrementViewCount, fetchNewsById, updateNews } from '../services/newsService';
+import {
+  toggleArchiveNews,
+  addComment,
+  likeNews,
+  fetchComments,
+  incrementViewCount,
+  fetchNewsById,
+  updateNews,
+} from '../services/newsService';
 import Toast from 'react-native-toast-message';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeIn, FadeOut, runOnJS } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeIn, FadeOut } from 'react-native-reanimated';
 import { launchImageLibrary } from 'react-native-image-picker';
 import {
-  Container, Header, ScrollContainer, ContentContainer, Title, Content, Meta,
-  ReadTime, ImageContainer, NewsImage, ActionBar, ActionItem, ActionText, ActionButton,
-  CommentSection, CommentInputContainer, CommentInput, CommentButton, CommentButtonText,
-  CommentCard, CommentUser, CommentContent, CommentMeta, SortButton, SortText, Divider,
-  ErrorContainer, ErrorText, RetryButton, RetryButtonText, NewsContent, CommentsHeader,
-  CommentsList, EmptyCommentText, LoadingContainer,
+  Container,
+  Header,
+  ScrollContainer,
+  ContentContainer,
+  Title,
+  Content,
+  Meta,
+  ReadTime,
+  ImageContainer,
+  NewsImage,
+  ActionBar,
+  ActionItem,
+  ActionText,
+  ActionButton,
+  CommentSection,
+  CommentInputContainer,
+  CommentInput,
+  CommentButton,
+  CommentButtonText,
+  CommentCard,
+  CommentUser,
+  CommentContent,
+  CommentMeta,
+  SortButton,
+  SortText,
+  Divider,
+  ErrorContainer,
+  ErrorText,
+  RetryButton,
+  RetryButtonText,
+  NewsContent,
+  CommentsHeader,
+  CommentsList,
+  EmptyCommentText,
+  LoadingContainer,
+  ContentWrapper,
 } from '../styles/newDetailStyles';
 import { BASE_URL } from '../utils';
 
@@ -31,6 +81,7 @@ const NewsDetailScreen = () => {
   const { newsId } = route.params;
   const { allNews, archivedNewsIds, user, setAllNews, setArchivedNewsIds } = useAppStore();
   const theme = useTheme();
+  const insets = useSafeAreaInsets(); // Use safe area insets
   const [newsItem, setNewsItem] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState('');
@@ -93,7 +144,7 @@ const NewsDetailScreen = () => {
 
       let item = allNews.find((item) => item._id === newsId);
       if (!item) {
-        console.log("News item not found in store, fetching from API...");
+        console.log('News item not found in store, fetching from API...');
         item = await fetchNewsById(newsId);
       }
       if (!item) throw new Error('News item not found');
@@ -107,7 +158,7 @@ const NewsDetailScreen = () => {
       setViewCount(updatedNews.viewCount || 0);
       setIsLiked(updatedNews.likedBy?.includes(user?._id) || false);
 
-      const newsExists = allNews.some(n => n._id === newsId);
+      const newsExists = allNews.some((n) => n._id === newsId);
       if (newsExists) {
         setAllNews(allNews.map((n) => (n._id === newsId ? updatedNews : n)));
       } else {
@@ -115,13 +166,15 @@ const NewsDetailScreen = () => {
       }
 
       const fetchedComments = await fetchComments(newsId);
-      setComments(fetchedComments.sort((a: any, b: any) =>
-        sortOrder === 'newest'
-          ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      ));
+      setComments(
+        fetchedComments.sort((a: any, b: any) =>
+          sortOrder === 'newest'
+            ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        )
+      );
     } catch (err: any) {
-      console.error("Error loading news data:", err);
+      console.error('Error loading news data:', err);
       setError(err.message || 'Failed to load news details');
     } finally {
       setLoading(false);
@@ -171,11 +224,9 @@ const NewsDetailScreen = () => {
   };
 
   const handleLike = async () => {
-    // Start the animation
     likeScale.value = withSpring(1.2);
     likeScale.value = withSpring(1);
 
-    // Perform state update and API call on JS thread
     try {
       const updatedNews = await likeNews(newsId);
       setIsLiked(!isLiked);
@@ -214,11 +265,13 @@ const NewsDetailScreen = () => {
     }
     try {
       const newComment = await addComment(newsId, commentText);
-      setComments([newComment, ...comments].sort((a, b) =>
-        sortOrder === 'newest'
-          ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      ));
+      setComments(
+        [newComment, ...comments].sort((a, b) =>
+          sortOrder === 'newest'
+            ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        )
+      );
       setCommentText('');
       setShowCommentInput(false);
       Toast.show({
@@ -247,7 +300,6 @@ const NewsDetailScreen = () => {
   };
 
   const toggleEditMode = () => {
-    // Update state first
     if (isEditing) {
       setEditTitle(newsItem.title);
       setEditContent(newsItem.content);
@@ -256,7 +308,6 @@ const NewsDetailScreen = () => {
       setTimeout(() => titleInputRef.current?.focus(), 100);
     }
 
-    // Animate
     editOpacity.value = withSpring(0);
     setTimeout(() => {
       setIsEditing(!isEditing);
@@ -374,7 +425,7 @@ const NewsDetailScreen = () => {
 
   if (loading) {
     return (
-      <Container behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
         <Header>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Icon name="arrow-back" size={24} color={theme.text} />
@@ -383,13 +434,13 @@ const NewsDetailScreen = () => {
         <LoadingContainer>
           <ActivityIndicator size="large" color={theme.primary} />
         </LoadingContainer>
-      </Container>
+      </SafeAreaView>
     );
   }
 
   if (error || !newsItem) {
     return (
-      <Container behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
         <Header>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Icon name="arrow-back" size={24} color={theme.text} />
@@ -401,149 +452,162 @@ const NewsDetailScreen = () => {
             <RetryButtonText>Retry</RetryButtonText>
           </RetryButton>
         </ErrorContainer>
-      </Container>
+      </SafeAreaView>
     );
   }
 
   return (
-    <Container behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Header>
-        <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Go back">
-          <Icon name="arrow-back" size={24} color={theme.text} />
-        </TouchableOpacity>
-        <View style={{ flexDirection: 'row' }}>
-          {user?.role === 'admin' && (
-            <ActionButton onPress={toggleEditMode} accessibilityLabel={isEditing ? 'Cancel edit' : 'Edit news'}>
-              <Icon name={isEditing ? 'close' : 'pencil'} size={20} color={theme.text} />
-            </ActionButton>
-          )}
-          <ActionButton onPress={handleArchive} accessibilityLabel={archivedNewsIds.includes(newsId) ? 'Unarchive news' : 'Archive news'}>
-            <Icon name="archive" size={20} color={archivedNewsIds.includes(newsId) ? '#007BFF' : theme.text} />
-          </ActionButton>
-        </View>
-      </Header>
-      <ScrollContainer>
-        <NewsContent>
-          <ContentContainer>
-            {isEditing ? (
-              <Animated.View style={animatedEditStyle} entering={FadeIn} exiting={FadeOut}>
-                <CommentInput
-                  ref={titleInputRef}
-                  value={editTitle}
-                  onChangeText={setEditTitle}
-                  placeholder="Enter title..."
-                  placeholderTextColor={`${theme.text}80`}
-                  maxLength={100}
-                  style={{ fontSize: 20, fontFamily: 'Roboto-Bold', marginBottom: 12 }}
-                  accessibilityLabel="Edit title"
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top', 'left', 'right']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.bottom + 90 : 0} // Adjust for tab bar
+      >
+        <ContentWrapper>
+          <Header>
+            <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel="Go back">
+              <Icon name="arrow-back" size={24} color={theme.text} />
+            </TouchableOpacity>
+            <View style={{ flexDirection: 'row' }}>
+              {user?.role === 'admin' && (
+                <ActionButton onPress={toggleEditMode} accessibilityLabel={isEditing ? 'Cancel edit' : 'Edit news'}>
+                  <Icon name={isEditing ? 'close' : 'pencil'} size={20} color={theme.text} />
+                </ActionButton>
+              )}
+              <ActionButton
+                onPress={handleArchive}
+                accessibilityLabel={archivedNewsIds.includes(newsId) ? 'Unarchive news' : 'Archive news'}
+              >
+                <Icon name="archive" size={20} color={archivedNewsIds.includes(newsId) ? '#007BFF' : theme.text} />
+              </ActionButton>
+            </View>
+          </Header>
+          <ScrollContainer contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
+            <NewsContent>
+              <ContentContainer>
+                {isEditing ? (
+                  <Animated.View style={animatedEditStyle} entering={FadeIn} exiting={FadeOut}>
+                    <CommentInput
+                      ref={titleInputRef}
+                      value={editTitle}
+                      onChangeText={setEditTitle}
+                      placeholder="Enter title..."
+                      placeholderTextColor={`${theme.text}80`}
+                      maxLength={100}
+                      style={{ fontSize: 20, fontFamily: 'Roboto-Bold', marginBottom: 12 }}
+                      accessibilityLabel="Edit title"
+                    />
+                  </Animated.View>
+                ) : (
+                  <Animated.View style={animatedEditStyle} entering={FadeIn} exiting={FadeOut}>
+                    <Title>{newsItem.title}</Title>
+                    <Meta>{newsItem.category} • {new Date(newsItem.createdAt).toLocaleDateString()}</Meta>
+                    <ReadTime>{calculateReadTime(newsItem.content)}</ReadTime>
+                  </Animated.View>
+                )}
+              </ContentContainer>
+
+              <ImageContainer>
+                <NewsImage
+                  source={{ uri: isEditing && editImage ? editImage : resolveImageUrl(newsItem.image) }}
+                  defaultSource={require('../assets/placeholder.png')}
                 />
-              </Animated.View>
-            ) : (
-              <Animated.View style={animatedEditStyle} entering={FadeIn} exiting={FadeOut}>
-                <Title>{newsItem.title}</Title>
-                <Meta>{newsItem.category} • {new Date(newsItem.createdAt).toLocaleDateString()}</Meta>
-                <ReadTime>{calculateReadTime(newsItem.content)}</ReadTime>
-              </Animated.View>
-            )}
-          </ContentContainer>
-          
-          <ImageContainer>
-            <NewsImage
-              source={{ uri: isEditing && editImage ? editImage : resolveImageUrl(newsItem.image) }}
-              defaultSource={require('../assets/placeholder.png')}
-            />
-            {isEditing && (
-              <Animated.View style={[animatedEditStyle, { position: 'absolute', bottom: 10, right: 10 }]}>
-                <TouchableOpacity onPress={handleImagePick} style={{ backgroundColor: '#007BFF', padding: 8, borderRadius: 8 }}>
-                  <Icon name="image" size={20} color="#fff" />
-                </TouchableOpacity>
-              </Animated.View>
-            )}
-          </ImageContainer>
-          
-          <ContentContainer>
-            <ActionBar>
-              <ActionItem onPress={handleLike} accessibilityLabel={isLiked ? 'Unlike news' : 'Like news'}>
-                <Animated.View style={animatedLikeStyle}>
-                  <Icon name={isLiked ? 'heart' : 'heart-outline'} size={20} color={isLiked ? '#007BFF' : theme.text} />
-                </Animated.View>
-                <ActionText>{likeCount} Likes</ActionText>
-              </ActionItem>
-              <ActionItem onPress={toggleCommentInput} accessibilityLabel="View or add comment">
-                <Icon name="chatbubble-outline" size={20} color={theme.text} />
-                <ActionText>{comments.length} Comments</ActionText>
-              </ActionItem>
-              <ActionItem accessibilityLabel="View count">
-                <Icon name="eye-outline" size={20} color={theme.text} />
-                <ActionText>{viewCount} Views</ActionText>
-              </ActionItem>
-              <ActionItem onPress={handleShare} accessibilityLabel="Share news">
-                <Icon name="share-outline" size={20} color={theme.text} />
-              </ActionItem>
-            </ActionBar>
-            
-            {isEditing ? (
-              <Animated.View style={animatedEditStyle}>
-                <CommentInput
-                  value={editContent}
-                  onChangeText={setEditContent}
-                  placeholder="Enter content..."
-                  placeholderTextColor={`${theme.text}80`}
-                  multiline
-                  maxLength={5000}
-                  style={{ minHeight: 200 }}
-                  accessibilityLabel="Edit content"
-                />
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 }}>
-                  <CommentButton onPress={handleSave} style={{ flex: 1, marginRight: 8 }}>
-                    <CommentButtonText>Save</CommentButtonText>
+                {isEditing && (
+                  <Animated.View style={[animatedEditStyle, { position: 'absolute', bottom: 10, right: 10 }]}>
+                    <TouchableOpacity
+                      onPress={handleImagePick}
+                      style={{ backgroundColor: '#007BFF', padding: 8, borderRadius: 8 }}
+                    >
+                      <Icon name="image" size={20} color="#fff" />
+                    </TouchableOpacity>
+                  </Animated.View>
+                )}
+              </ImageContainer>
+
+              <ContentContainer>
+                <ActionBar>
+                  <ActionItem onPress={handleLike} accessibilityLabel={isLiked ? 'Unlike news' : 'Like news'}>
+                    <Animated.View style={animatedLikeStyle}>
+                      <Icon name={isLiked ? 'heart' : 'heart-outline'} size={20} color={isLiked ? '#007BFF' : theme.text} />
+                    </Animated.View>
+                    <ActionText>{likeCount} Likes</ActionText>
+                  </ActionItem>
+                  <ActionItem onPress={toggleCommentInput} accessibilityLabel="View or add comment">
+                    <Icon name="chatbubble-outline" size={20} color={theme.text} />
+                    <ActionText>{comments.length} Comments</ActionText>
+                  </ActionItem>
+                  <ActionItem accessibilityLabel="View count">
+                    <Icon name="eye-outline" size={20} color={theme.text} />
+                    <ActionText>{viewCount} Views</ActionText>
+                  </ActionItem>
+                  <ActionItem onPress={handleShare} accessibilityLabel="Share news">
+                    <Icon name="share-outline" size={20} color={theme.text} />
+                  </ActionItem>
+                </ActionBar>
+
+                {isEditing ? (
+                  <Animated.View style={animatedEditStyle}>
+                    <CommentInput
+                      value={editContent}
+                      onChangeText={setEditContent}
+                      placeholder="Enter content..."
+                      placeholderTextColor={`${theme.text}80`}
+                      multiline
+                      maxLength={5000}
+                      style={{ minHeight: 200 }}
+                      accessibilityLabel="Edit content"
+                    />
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 }}>
+                      <CommentButton onPress={handleSave} style={{ flex: 1, marginRight: 8 }}>
+                        <CommentButtonText>Save</CommentButtonText>
+                      </CommentButton>
+                      <CommentButton onPress={toggleEditMode} style={{ flex: 1, backgroundColor: '#6c757d' }}>
+                        <CommentButtonText>Cancel</CommentButtonText>
+                      </CommentButton>
+                    </View>
+                  </Animated.View>
+                ) : (
+                  <Animated.View style={animatedEditStyle} entering={FadeIn} exiting={FadeOut}>
+                    <Content>{newsItem.content}</Content>
+                  </Animated.View>
+                )}
+                <Divider />
+              </ContentContainer>
+            </NewsContent>
+
+            <CommentsHeader>
+              <SortButton
+                onPress={toggleSortOrder}
+                accessibilityLabel={`Sort comments by ${sortOrder === 'newest' ? 'oldest' : 'newest'}`}
+              >
+                <Icon name={sortOrder === 'newest' ? 'arrow-down' : 'arrow-up'} size={16} color={theme.text} />
+                <SortText>Sort by {sortOrder === 'newest' ? 'Newest' : 'Oldest'}</SortText>
+              </SortButton>
+              {showCommentInput && (
+                <CommentInputContainer>
+                  <CommentInput
+                    ref={commentInputRef}
+                    placeholder="Add a comment..."
+                    placeholderTextColor={`${theme.text}80`}
+                    value={commentText}
+                    onChangeText={setCommentText}
+                    multiline
+                    maxLength={500}
+                    accessibilityLabel="Comment input"
+                  />
+                  <CommentButton onPress={handleAddComment}>
+                    <CommentButtonText>Post Comment</CommentButtonText>
                   </CommentButton>
-                  <CommentButton onPress={toggleEditMode} style={{ flex: 1, backgroundColor: '#6c757d' }}>
-                    <CommentButtonText>Cancel</CommentButtonText>
-                  </CommentButton>
-                </View>
-              </Animated.View>
-            ) : (
-              <Animated.View style={animatedEditStyle} entering={FadeIn} exiting={FadeOut}>
-                <Content>{newsItem.content}</Content>
-              </Animated.View>
-            )}
-            <Divider />
-          </ContentContainer>
-        </NewsContent>
-        
-        <CommentsHeader>
-          <SortButton onPress={toggleSortOrder} accessibilityLabel={`Sort comments by ${sortOrder === 'newest' ? 'oldest' : 'newest'}`}>
-            <Icon name={sortOrder === 'newest' ? 'arrow-down' : 'arrow-up'} size={16} color={theme.text} />
-            <SortText>Sort by {sortOrder === 'newest' ? 'Newest' : 'Oldest'}</SortText>
-          </SortButton>
-          {showCommentInput && (
-            <CommentInputContainer>
-              <CommentInput
-                ref={commentInputRef}
-                placeholder="Add a comment..."
-                placeholderTextColor={`${theme.text}80`}
-                value={commentText}
-                onChangeText={setCommentText}
-                multiline
-                maxLength={500}
-                accessibilityLabel="Comment input"
-              />
-              <CommentButton onPress={handleAddComment}>
-                <CommentButtonText>Post Comment</CommentButtonText>
-              </CommentButton>
-            </CommentInputContainer>
-          )}
-        </CommentsHeader>
-        <CommentsList>
-          {comments.length > 0 ? (
-            comments.map(renderComment)
-          ) : (
-            <EmptyCommentText>No comments yet.</EmptyCommentText>
-          )}
-        </CommentsList>
-      </ScrollContainer>
-    </Container>
+                </CommentInputContainer>
+              )}
+            </CommentsHeader>
+            <CommentsList>
+              {comments.length > 0 ? comments.map(renderComment) : <EmptyCommentText>No comments yet.</EmptyCommentText>}
+            </CommentsList>
+          </ScrollContainer>
+        </ContentWrapper>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
