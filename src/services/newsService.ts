@@ -11,7 +11,11 @@ interface NewsItem {
   image?: string;
   createdAt: string;
   role?: string;
+  createdBy?: string;
   updatedAt?: string;
+  likeCount?: number;
+  viewCount?: number;
+  likedBy?: string[];
 }
 
 export const toggleArchiveNews = async (newsId: string) => {
@@ -22,7 +26,7 @@ export const toggleArchiveNews = async (newsId: string) => {
       { newsId },
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    return response.data;
+    return response.data; // Returns { archivedNewsIds, newsItem }
   } catch (error: any) {
     console.error('Error toggling archive:', error.response?.data || error.message);
     throw new Error(error.response?.data?.message || 'Failed to toggle archive');
@@ -39,7 +43,7 @@ export const fetchUserPreferences = async () => {
     return response.data;
   } catch (error: any) {
     console.error('Error fetching user preferences:', error.response?.data || error.message);
-    return { archivedNewsIds: [] }; // Fallback to empty array
+    return { archivedNewsIds: [], selectedCategories: [] };
   }
 };
 
@@ -47,11 +51,12 @@ export const fetchNews = async (
   role: string,
   category: string = '',
   query: string = '',
-  since?: string
+  since?: string,
+  includeArchived: boolean = false
 ): Promise<NewsItem[]> => {
   try {
     const token = useAppStore.getState().token;
-    console.log('Fetching news with role:', role, 'category:', category, 'query:', query, 'since:', since, 'token:', token);
+    console.log('Fetching news with role:', role, 'category:', category, 'query:', query, 'since:', since, 'includeArchived:', includeArchived);
 
     const headers = {
       Authorization: token ? `Bearer ${token}` : '',
@@ -60,6 +65,9 @@ export const fetchNews = async (
     const params: any = { role, category };
     if (since) {
       params.since = since;
+    }
+    if (includeArchived) {
+      params.includeArchived = 'true';
     }
 
     if (query) {

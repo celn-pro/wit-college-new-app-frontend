@@ -37,7 +37,7 @@ interface AppStore {
   themeMode: 'system' | 'light' | 'dark';
   notifications: Notification[];
   allNews: News[];
-  lastUpdated: null;
+  lastUpdated: string | null;
   availableCategories: string[];
   token: string | null;
   archivedNewsIds: string[];
@@ -52,6 +52,7 @@ interface AppStore {
   markAllNotificationsAsRead: () => void;
   getUnreadCount: () => number;
   setAllNews: (news: News[]) => void;
+  updateNewsItem: (news: News) => void;
   toggleArchiveNews: (id: string) => void;
   createAdmin: (username: string) => void;
   addNews: (news: News) => void;
@@ -59,14 +60,19 @@ interface AppStore {
 
 export const useAppStore = create<AppStore>((set, get) => ({
   user: null,
-  themeMode: 'system', // Default to system theme
+  themeMode: 'system',
   notifications: [],
   allNews: [],
   lastUpdated: null,
   availableCategories: ['General', 'Sports', 'Events', 'Academics'],
   token: null,
   archivedNewsIds: [],
-  setArchivedNewsIds: (ids) => set({ archivedNewsIds: ids }),
+  setArchivedNewsIds: (ids) => {
+    set({ archivedNewsIds: ids });
+    AsyncStorage.setItem('archived_news_ids', JSON.stringify(ids)).catch((error) =>
+      console.error('Error saving archivedNewsIds:', error)
+    );
+  },
   setUser: async (user) => {
     set({ user });
     if (user) {
@@ -127,12 +133,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
       notifications: state.notifications.map((notif) => ({ ...notif, read: true })),
     })),
   getUnreadCount: () => get().notifications.filter((notif) => !notif.read).length,
-  setAllNews: (news) => set({ allNews: news }),
+  setAllNews: (news) => set({ allNews: news, lastUpdated: new Date().toISOString() }),
+  updateNewsItem: (news) =>
+    set((state) => ({
+      allNews: state.allNews.map((item) => (item._id === news._id ? news : item)),
+    })),
   toggleArchiveNews: (id) =>
     set((state) => ({
-      allNews: state.allNews.map((news) =>
-        news._id === id ? { ...news } : news
-      ),
+      archivedNewsIds: state.archivedNewsIds.includes(id)
+        ? state.archivedNewsIds.filter((archivedId) => archivedId !== id)
+        : [...state.archivedNewsIds, id],
     })),
   createAdmin: (username) => {
     console.log(`Creating admin with username: ${username}`);
