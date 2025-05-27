@@ -1,190 +1,204 @@
-import React, { useState, useCallback } from 'react';
-import { Text, TouchableOpacity, Platform, SafeAreaView, View } from 'react-native';
+import React, { useState } from 'react';
+import { Text, TouchableOpacity, Platform, View } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAppStore } from '../store';
 import { useTheme } from '../theme';
-import { createNews } from '../services/newsService';
+import { createNews, debouncedFetchNews } from '../services/newsService';
+import { cacheService } from '../services/cacheService';
 import Toast from 'react-native-toast-message';
 import { launchImageLibrary } from 'react-native-image-picker';
 import axios from 'axios';
-import { useFocusEffect } from '@react-navigation/native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/types';
 import { BASE_URL } from '../utils';
 import {
-  Container, Header, HeaderTitle, FormField, Label, Input, TextArea, PickerContainer, ToggleButton, ToggleText, SubmitButton,
-  SubmitButtonText, ImageSelectButton, ImageNameText, LoadingText,
+  SafeContainer,
+  Container,
+  Header,
+  HeaderTitle,
+  FormField,
+  Label,
+  Input,
+  TextArea,
+  PickerContainer,
+  ToggleButton,
+  ToggleText,
+  SubmitButton,
+  SubmitButtonText,
+  ImageSelectButton,
+  ImageNameText,
 } from '../styles/createScreenStyles';
 
 const CreateScreen = () => {
+  const { user, availableCategories, addNews, setAllNews } = useAppStore();
   const theme = useTheme();
-  const { availableCategories: defaultCategories, addNews, token } = useAppStore();
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [categories, setCategories] = useState<string[]>([]);
-  const [category, setCategory] = useState('');
-  const [image, setImage] = useState('');
-  const [imageFileName, setImageFileName] = useState('');
-  const [role, setRole] = useState('all');
-  const [useImageUrl, setUseImageUrl] = useState(true);
+  const [category, setCategory] = useState(availableCategories[0] || 'General');
+  const [role, setRole] = useState<'all' | 'student' | 'faculty'>('all');
+  const [image, setImage] = useState<string | null>(null);
+  const [imageFileName, setImageFileName] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState('');
   const [loading, setLoading] = useState(false);
-  const [fetchingCategories, setFetchingCategories] = useState(true);
 
-  // Fetch categories function
-  const fetchCategories = useCallback(async () => {
-    setFetchingCategories(true);
-    try {
-      console.log('Fetching categories...');
-      const response = await axios.get(`${BASE_URL}/api/categories`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.data && Array.isArray(response.data)) {
-        const categoryNames = response.data.map(cat => 
-          typeof cat === 'object' && cat.name ? cat.name : String(cat)
-        );
-        console.log('Categories fetched:', categoryNames);
-        setCategories(categoryNames);
-        
-        // Set default category after fetching
-        if (categoryNames.length > 0) {
-          setCategory(categoryNames[0]);
-        }
-      } else {
-        // Fallback to default categories if API response is not as expected
-        console.log('Invalid category data format, using defaults');
-        setCategories(defaultCategories);
-        if (defaultCategories.length > 0) {
-          setCategory(defaultCategories[0]);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch categories:', error);
-      // Fallback to default categories on error
-      setCategories(defaultCategories);
-      if (defaultCategories.length > 0) {
-        setCategory(defaultCategories[0]);
-      }
-      Toast.show({ 
-        type: 'error', 
-        text1: 'Error', 
-        text2: 'Failed to fetch categories' 
-      });
-    } finally {
-      setFetchingCategories(false);
-    }
-  }, [token, defaultCategories]);
-
-  // Use useFocusEffect to refetch categories each time the screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      fetchCategories();
-      
-      // Optional: return a cleanup function
-      return () => {
-        // Any cleanup code if needed
-      };
-    }, [fetchCategories])
-  );
-
-  const handleToggleImageSource = () => {
-    setUseImageUrl(!useImageUrl);
-    setImage('');
-    setImageFileName('');
-  };
-
-  const handleImagePick = async () => {
+  const handleImagePicker = async () => {
     try {
       const result = await launchImageLibrary({
         mediaType: 'photo',
-        quality: 1,
-        includeBase64: false,
+        quality: 0.8,
+        maxWidth: 800,
+        maxHeight: 800,
       });
-      if (result.didCancel) {
-        Toast.show({ type: 'info', text1: 'Cancelled', text2: 'Image selection cancelled' });
-        return;
-      }
+
+      if (result.didCancel) return;
       if (result.errorCode) {
-        Toast.show({ type: 'error', text1: 'Error', text2: `Image picker error: ${result.errorMessage}` });
+        Toast.show({ type: 'error', text1: 'Error', text2: result.errorMessage || 'Failed to pick image' });
         return;
       }
+
       if (result.assets && result.assets[0].uri) {
         const asset = result.assets[0];
         setImageFileName(asset.fileName || 'image.jpg');
+        setImageUrl('');
         setLoading(true);
+
+        const formData = new FormData();
+        formData.append('image', {
+          uri: asset.uri
+            ? Platform.OS === 'ios'
+              ? asset.uri.replace('file://', '')
+              : asset.uri
+            : '',
+          type: asset.type || 'image/jpeg',
+          name: asset.fileName || 'image.jpg',
+        } as any);
+
         try {
-          const formData = new FormData();
-          formData.append('image', {
-            uri: asset.uri,
-            type: asset.type || 'image/jpeg',
-            name: asset.fileName || 'image.jpg',
-          });
-          const res = await axios.post(`${BASE_URL}/api/news/upload-image`, formData, {
+          const response = await axios.post(`${BASE_URL}/api/news/upload-image`, formData, {
             headers: {
-              Authorization: `Bearer ${token}`,
               'Content-Type': 'multipart/form-data',
+              Authorization: `Bearer ${useAppStore.getState().token}`,
             },
           });
-          setImage(res.data.imageUrl);
-          Toast.show({ type: 'success', text1: 'Success', text2: 'Image uploaded' });
+          setImage(response.data.imageUrl || response.data.imagePath);
+          Toast.show({ type: 'success', text1: 'Success', text2: 'Image uploaded successfully' });
         } catch (error: any) {
-          console.error('Image upload failed:', error);
-          Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to upload image' });
+          console.error('Image upload error:', error);
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: error.response?.data?.message || 'Failed to upload image',
+          });
         } finally {
           setLoading(false);
         }
       }
     } catch (error: any) {
       console.error('Image picker error:', error);
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to select image' });
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to pick image' });
+      setLoading(false);
+    }
+  };
+
+  const handleImageUrlChange = (url: string) => {
+    setImageUrl(url);
+    setImage(url);
+    setImageFileName(null);
+  };
+
+  const refreshNews = async () => {
+    try {
+      const newsData = await debouncedFetchNews('admin', '', '', undefined, true);
+      const normalizedNews = newsData.map((item) => ({
+        ...item,
+        likeCount: item.likeCount ?? 0,
+        viewCount: item.viewCount ?? 0,
+        likedBy: item.likedBy ?? [],
+        viewedBy: item.viewedBy ?? [],
+      }));
+      setAllNews(normalizedNews);
+      const newsCache = await cacheService.getNewsCache();
+      await cacheService.setNewsCache(normalizedNews, newsCache?.archivedIds || []);
+    } catch (error: any) {
+      console.error('Error refreshing news:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to refresh news',
+      });
     }
   };
 
   const handleSubmit = async () => {
-    if (!title.trim() || !content.trim() || !category) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Title, content, and category are required' });
+    if (!title || !content || !category) {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Please fill all required fields' });
       return;
     }
-    if (title.length > 100) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Title must be 100 characters or less' });
+
+    if (imageUrl && !isValidUrl(imageUrl)) {
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Please enter a valid image URL' });
       return;
     }
-    if (content.length > 5000) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Content must be 5000 characters or less' });
-      return;
-    }
+
     setLoading(true);
     try {
-      const newNews = await createNews({
-        title,
-        content,
-        category,
-        image: image.trim() || undefined,
-        role,
+      const newsData = { title, content, category, image: image || undefined, role };
+      const createdNews = await createNews(newsData);
+      addNews({
+        _id: createdNews._id,
+        title: createdNews.title,
+        content: createdNews.content,
+        category: createdNews.category,
+        image: createdNews.image,
+        role: createdNews.role,
+        createdBy: createdNews.createdBy,
+        createdAt: createdNews.createdAt,
+        likeCount: createdNews.likeCount || 0,
+        viewCount: createdNews.viewCount || 0,
+        likedBy: createdNews.likedBy || [],
       });
-      addNews(newNews);
-      Toast.show({ type: 'success', text1: 'Success', text2: 'News post created successfully!' });
       setTitle('');
       setContent('');
-      setImage('');
-      setImageFileName('');
-      setCategory(categories[0] || '');
+      setCategory(availableCategories[0] || 'General');
       setRole('all');
-      setUseImageUrl(true);
+      setImage(null);
+      setImageFileName(null);
+      setImageUrl('');
+      await refreshNews();
+      Toast.show({ type: 'success', text1: 'Success', text2: 'News posted successfully' });
     } catch (error: any) {
-      console.error('Failed to create news:', error);
-      Toast.show({ type: 'error', text1: 'Error', text2: error.message || 'Failed to create news post' });
+      console.error('Create news error:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message || 'Failed to create news',
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  const isValidUrl = (url: string) => {
+    try {
+      new URL(url);
+      return url.match(/\.(jpeg|jpg|png|gif)$/i) !== null;
+    } catch {
+      return false;
+    }
+  };
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
-      <Container contentContainerStyle={{ paddingBottom: 100 }}>
+    <SafeContainer>
+      <Container contentContainerStyle={{ paddingBottom: 20 }}>
         <Header>
           <HeaderTitle>Create News</HeaderTitle>
-          <Icon name="create" size={30} color={theme.primary} />
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Icon name="close" size={24} color={theme.text} />
+          </TouchableOpacity>
         </Header>
+
         <FormField>
           <Label>Title</Label>
           <Input
@@ -195,6 +209,7 @@ const CreateScreen = () => {
             maxLength={100}
           />
         </FormField>
+
         <FormField>
           <Label>Content</Label>
           <TextArea
@@ -206,74 +221,62 @@ const CreateScreen = () => {
             maxLength={5000}
           />
         </FormField>
+
         <FormField>
           <Label>Category</Label>
-          {fetchingCategories ? (
-            <LoadingText>Loading categories...</LoadingText>
-          ) : categories.length > 0 ? (
-            <PickerContainer>
-              <Picker
-                selectedValue={category}
-                onValueChange={(value) => setCategory(value)}
-                style={{ color: theme.text }}
-              >
-                {categories.map((cat) => (
-                  <Picker.Item key={cat} label={cat} value={cat} />
-                ))}
-              </Picker>
-            </PickerContainer>
-          ) : (
-            <LoadingText>No categories available</LoadingText>
-          )}
-        </FormField>
-        <FormField>
-          <Label>Image (optional)</Label>
-          <ToggleButton onPress={handleToggleImageSource}>
-            <Icon name={useImageUrl ? 'link' : 'image'} size={20} color={theme.primary} />
-            <ToggleText>{useImageUrl ? 'Use Image URL' : 'Upload Image'}</ToggleText>
-          </ToggleButton>
-          {useImageUrl ? (
-            <Input
-              value={image}
-              onChangeText={setImage}
-              placeholder="Enter image URL"
-              placeholderTextColor={theme.text + '80'}
-            />
-          ) : (
-            <>
-              <ImageSelectButton onPress={handleImagePick} disabled={loading}>
-                <Text style={{ color: theme.text, fontFamily: 'Roboto-Regular' }}>
-                  {loading ? 'Uploading...' : 'Select Image'}
-                </Text>
-              </ImageSelectButton>
-              {imageFileName && (
-                <ImageNameText>Selected: {imageFileName}</ImageNameText>
-              )}
-            </>
-          )}
-        </FormField>
-        <FormField>
-          <Label>Visibility Scope</Label>
           <PickerContainer>
             <Picker
-              selectedValue={role}
-              onValueChange={(value) => setRole(value)}
-              style={{ color: theme.text }}
+              selectedValue={category}
+              onValueChange={(itemValue) => setCategory(itemValue)}
+              style={{ color: theme.text, backgroundColor: theme.cardBackground }}
             >
-              <Picker.Item label="All" value="all" />
-              <Picker.Item label="Student" value="student" />
-              <Picker.Item label="Faculty" value="faculty" />
+              {availableCategories.map((cat) => (
+                <Picker.Item key={cat} label={cat} value={cat} />
+              ))}
             </Picker>
           </PickerContainer>
         </FormField>
-        <SubmitButton onPress={handleSubmit} disabled={loading || fetchingCategories}>
-          <SubmitButtonText>{loading ? 'Creating...' : 'Create Post'}</SubmitButtonText>
+
+        <FormField>
+          <Label>Visible to</Label>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            {['all', 'student', 'faculty'].map((r) => (
+              <ToggleButton
+                key={r}
+                selected={role === r}
+                onPress={() => setRole(r as 'all' | 'student' | 'faculty')}
+              >
+                <ToggleText selected={role === r}>
+                  {r.charAt(0).toUpperCase() + r.slice(1)}
+                </ToggleText>
+              </ToggleButton>
+            ))}
+          </View>
+        </FormField>
+
+        <FormField>
+          <Label>Image (Optional)</Label>
+          <ImageSelectButton onPress={handleImagePicker} disabled={loading}>
+            <Text style={{ color: theme.text }}>
+              {imageFileName ? 'Change Image' : 'Select Image from Device'}
+            </Text>
+          </ImageSelectButton>
+          {imageFileName && <ImageNameText>{imageFileName}</ImageNameText>}
+          <Input
+            value={imageUrl}
+            onChangeText={handleImageUrlChange}
+            placeholder="Or enter image URL (jpg, png, gif)"
+            placeholderTextColor={theme.text + '80'}
+            keyboardType="url"
+            style={{ marginTop: 8 }}
+          />
+        </FormField>
+
+        <SubmitButton onPress={handleSubmit} disabled={loading}>
+          <SubmitButtonText>{loading ? 'Posting...' : 'Post News'}</SubmitButtonText>
         </SubmitButton>
-        
-        {/* Extra space at bottom to ensure content is above tab bar */}
-        <View style={{ height: 30 }} />
       </Container>
-    </SafeAreaView>
+    </SafeContainer>
   );
 };
 

@@ -26,10 +26,11 @@ import {
   GradientHeader,
   PageContainer,
 } from '../styles/profileScreenStyles';
+import { cacheService } from '../services/cacheService';
 
 const ProfileScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { user, toggleTheme, themeMode, token, archivedNewsIds, setUser } = useAppStore();
+  const { user, toggleTheme, themeMode, token, archivedNewsIds, setUser, setToken, setAllNews, setArchivedNewsIds, setNotifications } = useAppStore();
   const theme = useTheme();
   const { primary, text } = theme;
   const [adminUsername, setAdminUsername] = useState('');
@@ -108,10 +109,20 @@ const ProfileScreen = () => {
     }
   };
 
-  const handleLogout = () => {
-    useAppStore.setState({ user: null, token: null });
-    navigation.navigate('Auth');
-    Toast.show({ type: 'success', text1: 'Logged Out', text2: 'You have been logged out' });
+  const handleLogout = async () => {
+    try {
+      await cacheService.clearCache();
+      setUser(null);
+      setToken(null);
+      setAllNews([]);
+      setArchivedNewsIds([]);
+      setNotifications([]);
+      navigation.navigate('Auth');
+      Toast.show({ type: 'success', text1: 'Logged Out', text2: 'You have been logged out' });
+    } catch (error) {
+      console.error('Error during logout:', error);
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to log out' });
+    }
   };
 
   const handleCreateAdmin = async () => {
@@ -162,7 +173,7 @@ const ProfileScreen = () => {
   };
 
   const handleResetPassword = async (userId: string) => {
-    const newPassword = 'newpassword123'; // Generate a random password or use a prompt
+    const newPassword = 'newpassword123';
     try {
       await axios.patch(
         `${BASE_URL}/api/users/${userId}/password`,
@@ -203,7 +214,9 @@ const ProfileScreen = () => {
         { email, displayName },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setUser({ ...user!, email: res.data.email, username: res.data.displayName || user!.username });
+      const updatedUser = { ...user!, email: res.data.email, username: res.data.displayName || user!.username };
+      setUser(updatedUser);
+      await cacheService.setUser(updatedUser);
       setShowEmailPrompt(false);
       Toast.show({ type: 'success', text1: 'Success', text2: 'Profile updated' });
     } catch (error: any) {
@@ -213,27 +226,19 @@ const ProfileScreen = () => {
 
   const getThemeDisplayText = () => {
     switch (themeMode) {
-      case 'system':
-        return 'System';
-      case 'light':
-        return 'Light';
-      case 'dark':
-        return 'Dark';
-      default:
-        return 'System';
+      case 'system': return 'System';
+      case 'light': return 'Light';
+      case 'dark': return 'Dark';
+      default: return 'System';
     }
   };
 
   const getThemeIcon = () => {
     switch (themeMode) {
-      case 'system':
-        return 'phone-portrait';
-      case 'light':
-        return 'sunny';
-      case 'dark':
-        return 'moon';
-      default:
-        return 'phone-portrait';
+      case 'system': return 'phone-portrait';
+      case 'light': return 'sunny';
+      case 'dark': return 'moon';
+      default: return 'phone-portrait';
     }
   };
 

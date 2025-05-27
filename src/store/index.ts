@@ -97,6 +97,10 @@ export const useAppStore = create<AppStore>((set, get) => ({
       console.error('Error saving themeMode to AsyncStorage:', error);
     }
   },
+  getUnreadCount: () => {
+    const notifications = Array.isArray(get().notifications) ? get().notifications : [];
+    return notifications.filter((n) => !n.read).length;
+  },
   toggleTheme: async () => {
     set((state) => {
       const modes: ('system' | 'light' | 'dark')[] = ['system', 'light', 'dark'];
@@ -132,7 +136,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set((state) => ({
       notifications: state.notifications.map((notif) => ({ ...notif, read: true })),
     })),
-  getUnreadCount: () => get().notifications.filter((notif) => !notif.read).length,
   setAllNews: (news) => set({ allNews: news, lastUpdated: new Date().toISOString() }),
   updateNewsItem: (news) =>
     set((state) => ({

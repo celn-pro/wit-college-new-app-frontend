@@ -7,17 +7,16 @@ import {
   ActivityIndicator,
   StatusBar,
   Dimensions,
+  RefreshControl,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetchNews, toggleArchiveNews, fetchUserPreferences } from '../services/newsService';
+import { debouncedFetchNews, toggleArchiveNews, fetchUserPreferences } from '../services/newsService';
 import { useAppStore, News } from '../store';
 import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../theme';
 import Carousel from 'react-native-reanimated-carousel';
 import Toast from 'react-native-toast-message';
-import axios from 'axios';
 import { BASE_URL } from '../utils';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -53,6 +52,7 @@ import {
   ManageCategoriesButton,
   ManageCategoriesText,
 } from '../styles/homeScreenStyles';
+import { cacheService } from '../services/cacheService';
 
 const resolveImageUrl = (imagePath: string) => {
   if (!imagePath) return 'https://picsum.photos/seed/default-news/200/200';
@@ -62,12 +62,6 @@ const resolveImageUrl = (imagePath: string) => {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Cache keys
-const NEWS_CACHE_KEY = 'news_cache';
-const LAST_FETCHED_KEY = 'last_fetched';
-const ARCHIVED_NEWS_KEY = 'archived_news_ids';
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
 const HomeScreen = () => {
   const [news, setNews] = useState<News[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -75,54 +69,26 @@ const HomeScreen = () => {
   const [loading, setLoading] = useState(true);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { user, token, availableCategories, setAllNews, allNews, archivedNewsIds, setArchivedNewsIds, getUnreadCount } = useAppStore();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const [lastArchivedIds, setLastArchivedIds] = useState<string[]>([]);
-  const [lastProcessedState, setLastProcessedState] = useState({ 
-    allNewsHash: '',
-    archivedIdsHash: ''
-  });
-
-  // Function to compute hash for comparison
-  const computeStateHash = useCallback(() => {
-    return {
-      allNewsHash: allNews.length > 0 ? JSON.stringify(allNews.map(n => n._id).sort()) : '',
-      archivedIdsHash: archivedNewsIds.length > 0 ? JSON.stringify([...archivedNewsIds].sort()) : ''
-    };
-  }, [allNews, archivedNewsIds]);
 
   const loadCachedData = async () => {
     try {
-      const cachedNews = await AsyncStorage.getItem(NEWS_CACHE_KEY);
-      const cachedArchivedIds = await AsyncStorage.getItem(ARCHIVED_NEWS_KEY);
-      const lastFetched = await AsyncStorage.getItem(LAST_FETCHED_KEY);
-
-      if (cachedNews && cachedArchivedIds && lastFetched) {
-        const parsedNews = JSON.parse(cachedNews);
-        const parsedArchivedIds = JSON.parse(cachedArchivedIds);
-        const lastFetchedTime = parseInt(lastFetched, 10);
-        const now = Date.now();
-        if (now - lastFetchedTime < CACHE_DURATION) {
-          setAllNews(parsedNews);
-          setArchivedNewsIds(parsedArchivedIds);
-          setLastArchivedIds(parsedArchivedIds);
-          setNews(
-            selectedCategory === 'All'
-              ? parsedNews.filter((item: News) => !parsedArchivedIds.includes(item._id))
-              : parsedNews.filter(
-                  (item: News) => item.category === selectedCategory && !parsedArchivedIds.includes(item._id)
-                )
-          );
-          
-          // Set processed state hash
-          setLastProcessedState({
-            allNewsHash: parsedNews.length > 0 ? JSON.stringify(parsedNews.map((n: News) => n._id).sort()) : '', 
-            archivedIdsHash: parsedArchivedIds.length > 0 ? JSON.stringify([...parsedArchivedIds].sort()) : ''
-          });
-          return true;
-        }
+      const cached = await cacheService.getNewsCache();
+      if (cached) {
+        setAllNews(cached.news);
+        setArchivedNewsIds(cached.archivedIds);
+        setNews(
+          selectedCategory === 'All'
+            ? cached.news.filter((item: News) => !cached.archivedIds.includes(item._id))
+            : cached.news.filter(
+                (item: News) => item.category === selectedCategory && !cached.archivedIds.includes(item._id)
+              )
+        );
+        return true;
       }
       return false;
     } catch (err) {
@@ -133,9 +99,7 @@ const HomeScreen = () => {
 
   const saveCachedData = async (newsData: News[], archivedIds: string[]) => {
     try {
-      await AsyncStorage.setItem(NEWS_CACHE_KEY, JSON.stringify(newsData));
-      await AsyncStorage.setItem(ARCHIVED_NEWS_KEY, JSON.stringify(archivedIds));
-      await AsyncStorage.setItem(LAST_FETCHED_KEY, Date.now().toString());
+      await cacheService.setNewsCache(newsData, archivedIds);
     } catch (err) {
       console.error('Error saving cached data:', err);
     }
@@ -143,26 +107,30 @@ const HomeScreen = () => {
 
   const loadData = async (forceFetch: boolean = false, showLoadingIndicator: boolean = true) => {
     try {
-      // Only show loading if we're forcing a fetch and showing the indicator
       if (forceFetch && showLoadingIndicator && !initialLoadComplete) {
         setLoading(true);
       }
-      
       setError(null);
 
-      // Check if we can use cached data
-      if (!forceFetch && (await loadCachedData())) {
+      if (!forceFetch && await loadCachedData()) {
         setLoading(false);
         setInitialLoadComplete(true);
         return;
       }
 
-      const preferences = await fetchUserPreferences();
-      const userArchivedIds = preferences?.archivedNewsIds || [];
+      let userArchivedIds: string[] = [];
+      let userCategories: string[] = [];
+      try {
+        const preferences = await fetchUserPreferences();
+        userArchivedIds = preferences.archivedNewsIds || [];
+        userCategories = preferences.selectedCategories || [];
+      } catch (err) {
+        console.warn('Failed to fetch preferences, using defaults:', err);
+        userArchivedIds = [];
+        userCategories = availableCategories;
+      }
       setArchivedNewsIds(userArchivedIds);
-      setLastArchivedIds(userArchivedIds);
 
-      let userCategories = preferences?.selectedCategories || [];
       let filteredCategories = ['All'];
       if (user?.isAdmin) {
         filteredCategories = ['All', 'Deadline', 'Achievements', ...userCategories];
@@ -172,9 +140,7 @@ const HomeScreen = () => {
       filteredCategories = [...new Set(filteredCategories)];
       setCategories(filteredCategories);
 
-      // Fetch all news, including archived
-      const newsData = await fetchNews(user?.role || 'user', '', '', undefined, true);
-
+      const newsData = await debouncedFetchNews(user?.role || 'user', '', '', undefined, true);
       const completeNewsData: News[] = newsData.map((item: any) => ({
         _id: item._id,
         title: item.title,
@@ -198,84 +164,80 @@ const HomeScreen = () => {
           ? filteredNewsData
           : filteredNewsData.filter((item) => item.category === selectedCategory)
       );
-
-      // Update the processed state hash
-      setLastProcessedState({
-        allNewsHash: completeNewsData.length > 0 ? JSON.stringify(completeNewsData.map(n => n._id).sort()) : '',
-        archivedIdsHash: userArchivedIds.length > 0 ? JSON.stringify([...userArchivedIds].sort()) : ''
-      });
-
     } catch (err) {
-      setError('Failed to load data. Please try again later.');
       console.error('Error loading data:', err);
+      setError('Failed to load news. Please try again later.');
     } finally {
       setLoading(false);
       setInitialLoadComplete(true);
     }
   };
 
-  // Initial data load on component mount
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await cacheService.clearCache();
+      await loadData(true, true);
+      Toast.show({
+        type: 'success',
+        text1: 'Refreshed',
+        text2: 'News data refreshed successfully',
+      });
+    } catch (err) {
+      setError('Failed to refresh data. Please try again.');
+      console.error('Error refreshing data:', err);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to refresh data',
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, [user, setAllNews, availableCategories]);
 
-  // Check for updates when screen is focused
   useFocusEffect(
     useCallback(() => {
-      const checkForUpdates = async () => {
-        console.log('HomeScreen focused, checking for updates');
-        
-        if (!initialLoadComplete) {
-          // Skip check if we haven't loaded data yet
-          return;
-        }
-        
-        // Get current state hash
-        const currentHash = computeStateHash();
-        
-        // Compare with last processed state
-        const stateChanged = 
-          currentHash.allNewsHash !== lastProcessedState.allNewsHash ||
-          currentHash.archivedIdsHash !== lastProcessedState.archivedIdsHash;
-          
-        if (stateChanged) {
-          console.log('Data changed, updating HomeScreen');
-          // Just update filtered news without showing loading indicator
-          const filteredNews = allNews.filter(
-            (item) => !archivedNewsIds.includes(item._id) && 
-                     (selectedCategory === 'All' || item.category === selectedCategory)
-          );
-          setNews(filteredNews);
-          setLastProcessedState(currentHash);
-        } else {
-          console.log('No data change detected, skipping update');
-        }
-        
-        // Check if cache has expired
-        const lastFetched = await AsyncStorage.getItem(LAST_FETCHED_KEY);
-        const now = Date.now();
-        if (!lastFetched || now - parseInt(lastFetched, 10) >= CACHE_DURATION) {
-          console.log('Cache expired, fetching fresh data');
-          loadData(true, false); // Force fetch without loading indicator
+      const checkCacheAndReload = async () => {
+        if (initialLoadComplete && (await cacheService.isCacheExpired())) {
+          loadData(true, false);
         }
       };
-      
-      checkForUpdates();
-    }, [initialLoadComplete, archivedNewsIds, allNews, selectedCategory, lastProcessedState])
+      checkCacheAndReload();
+    }, [initialLoadComplete])
   );
 
-  useEffect(() => {
-    if (initialLoadComplete && allNews.length > 0) {
-      const filteredNews = allNews.filter(
-        (item) => !archivedNewsIds.includes(item._id) && 
-                 (selectedCategory === 'All' || item.category === selectedCategory)
-      );
-      setNews(filteredNews);
-      
-      // Update processed state hash when relevant state changes
-      setLastProcessedState(computeStateHash());
+  const handleCategoryChange = async (category: string) => {
+    setSelectedCategory(category);
+    try {
+      const newsData = await debouncedFetchNews(user?.role || 'user', category, '', undefined, false);
+      const mappedNewsData: News[] = newsData.map((item: any) => ({
+        _id: item._id,
+        title: item.title,
+        content: item.content,
+        category: item.category,
+        image: item.image,
+        role: item.role || 'public',
+        createdBy: item.createdBy || 'system',
+        createdAt: item.createdAt,
+        likeCount: item.likeCount || 0,
+        viewCount: item.viewCount || 0,
+        likedBy: item.likedBy || [],
+      }));
+      setNews(mappedNewsData.filter((item: News) => !archivedNewsIds.includes(item._id)));
+    } catch (err) {
+      console.error('Error changing category:', err);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load category',
+      });
     }
-  }, [selectedCategory, initialLoadComplete]);
+  };
 
   const handleToggleArchive = async (_id: string) => {
     const previousNews = [...news];
@@ -286,13 +248,11 @@ const HomeScreen = () => {
       ? archivedNewsIds.filter((id) => id !== _id)
       : [...archivedNewsIds, _id];
 
-    // Optimistic update
     setArchivedNewsIds(newArchivedNewsIds);
     setNews(
       allNews.filter(
-        (item) =>
-          !newArchivedNewsIds.includes(item._id) &&
-          (selectedCategory === 'All' || item.category === selectedCategory)
+        (item) => !newArchivedNewsIds.includes(item._id) &&
+                 (selectedCategory === 'All' || item.category === selectedCategory)
       )
     );
     await saveCachedData(allNews, newArchivedNewsIds);
@@ -316,11 +276,6 @@ const HomeScreen = () => {
         });
       }
       await saveCachedData(allNews, updatedArchivedIds);
-      setLastArchivedIds(updatedArchivedIds);
-      
-      // Update processed state hash
-      setLastProcessedState(computeStateHash());
-
       Toast.show({
         type: 'success',
         text1: 'Success',
@@ -328,19 +283,10 @@ const HomeScreen = () => {
       });
     } catch (error: any) {
       console.error('Archive toggle failed:', error);
-      // Revert optimistic update
       setNews(previousNews);
       setAllNews(previousAllNews);
       setArchivedNewsIds(previousArchivedIds);
       await saveCachedData(previousAllNews, previousArchivedIds);
-      setLastArchivedIds(previousArchivedIds);
-      
-      // Reset processed state hash
-      setLastProcessedState({
-        allNewsHash: previousAllNews.length > 0 ? JSON.stringify(previousAllNews.map(n => n._id).sort()) : '',
-        archivedIdsHash: previousArchivedIds.length > 0 ? JSON.stringify([...previousArchivedIds].sort()) : ''
-      });
-
       Toast.show({
         type: 'error',
         text1: 'Error',
@@ -350,7 +296,7 @@ const HomeScreen = () => {
   };
 
   const renderCategory = ({ item }: { item: string }) => (
-    <CategoryButton selected={selectedCategory === item} onPress={() => setSelectedCategory(item)}>
+    <CategoryButton selected={selectedCategory === item} onPress={() => handleCategoryChange(item)}>
       <CategoryText>{item}</CategoryText>
     </CategoryButton>
   );
@@ -504,7 +450,16 @@ const HomeScreen = () => {
           </FeaturedCarouselContainer>
         )}
       </FixedContentContainer>
-      <ScrollableContentContainer contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}>
+      <ScrollableContentContainer
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={theme.primary}
+          />
+        }
+      >
         <NewsListContainer>
           {news.length > 0 ? (
             news.map((item) => (

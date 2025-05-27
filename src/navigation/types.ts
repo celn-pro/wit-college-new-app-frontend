@@ -4,6 +4,8 @@ export type RootStackParamList = {
   Notifications: undefined;
   Search: undefined;
   Archive: undefined;
-  Auth:undefined;
+  Auth: undefined;
   CategorySelection: undefined;
+  Create: undefined;
+  Profile: undefined;
 };

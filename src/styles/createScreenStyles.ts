@@ -63,17 +63,20 @@ export const PickerContainer = styled.View`
   border: 1px solid ${(props) => props.theme.border};
 `;
 
-export const ToggleButton = styled.TouchableOpacity`
-  flex-direction: row;
+export const ToggleButton = styled.TouchableOpacity<{ selected?: boolean }>`
+  flex: 1;
   align-items: center;
-  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: ${(props) => (props.selected ? props.theme.primary + '20' : props.theme.cardBackground)};
+  border: 1px solid ${(props) => (props.selected ? props.theme.primary : props.theme.border)};
+  margin-right: 8px;
 `;
 
-export const ToggleText = styled.Text`
+export const ToggleText = styled.Text<{ selected?: boolean }>`
   font-size: 14px;
   font-family: 'Roboto-Medium';
-  color: ${(props) => props.theme.primary};
-  margin-left: 8px;
+  color: ${(props) => (props.selected ? props.theme.primary : props.theme.text)};
 `;
 
 export const SubmitButton = styled.TouchableOpacity`
@@ -114,7 +117,6 @@ export const LoadingText = styled.Text`
   margin: 10px 0;
 `;
 
-// Add these new styles to help with tab navigation layout
 export const ContentContainer = styled.View`
   flex: 1;
   padding-bottom: ${TAB_BAR_HEIGHT + 20}px;
@@ -123,4 +125,31 @@ export const ContentContainer = styled.View`
 export const SafeContainer = styled.SafeAreaView`
   flex: 1;
   background-color: ${(props) => props.theme.background};
+`;
+
+export const NewsListContainer = styled.View`
+  margin-top: 20px;
+`;
+
+export const NewsItem = styled.View`
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  background-color: ${(props) => props.theme.cardBackground};
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border: 1px solid ${(props) => props.theme.border};
+`;
+
+export const NewsTitle = styled.Text`
+  font-size: 16px;
+  font-family: 'Roboto-Regular';
+  color: ${(props) => props.theme.text};
+  flex: 1;
+  margin-right: 8px;
+`;
+
+export const DeleteButton = styled.TouchableOpacity`
+  padding: 8px;
 `;
