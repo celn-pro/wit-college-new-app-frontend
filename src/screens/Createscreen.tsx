@@ -49,12 +49,16 @@ const CreateScreen = () => {
         mediaType: 'photo',
         quality: 0.8,
         maxWidth: 800,
-        maxHeight: 800,
+        maxHeight: 600,
       });
 
       if (result.didCancel) return;
       if (result.errorCode) {
-        Toast.show({ type: 'error', text1: 'Error', text2: result.errorMessage || 'Failed to pick image' });
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: result.errorMessage || 'Failed to pick image',
+        });
         return;
       }
 
@@ -183,7 +187,7 @@ const CreateScreen = () => {
   const isValidUrl = (url: string) => {
     try {
       new URL(url);
-      return url.match(/\.(jpeg|jpg|png|gif)$/i) !== null;
+      return true;
     } catch {
       return false;
     }
@@ -265,7 +269,7 @@ const CreateScreen = () => {
           <Input
             value={imageUrl}
             onChangeText={handleImageUrlChange}
-            placeholder="Or enter image URL (jpg, png, gif)"
+            placeholder="Or enter image URL (e.g., https://picsum.photos/600/400)"
             placeholderTextColor={theme.text + '80'}
             keyboardType="url"
             style={{ marginTop: 8 }}

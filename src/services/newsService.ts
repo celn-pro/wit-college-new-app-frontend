@@ -220,8 +220,8 @@ export const toggleArchiveNews = async (newsId: string): Promise<{ archivedNewsI
   const { token } = useAppStore.getState();
   try {
     const response = await axios.post(
-      `${BASE_URL}/api/news/${newsId}/archive`,
-      {},
+      `${BASE_URL}/api/news/${newsId}/toggle-archive`,
+      {newsId},
       { headers: { Authorization: `Bearer ${token}` } }
     );
     fetchCache.clear();

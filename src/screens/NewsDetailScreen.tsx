@@ -81,6 +81,15 @@ const resolveImageUrl = (imagePath?: string) => {
   return imagePath;
 };
 
+const isValidUrl = (url: string) => {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const NewsDetailScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'NewsDetail'>>();
@@ -102,6 +111,7 @@ const NewsDetailScreen = () => {
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
   const [editImage, setEditImage] = useState<string | null>(null);
+  const [editImageUrl, setEditImageUrl] = useState('');
   const commentInputRef = useRef<TextInput>(null);
   const titleInputRef = useRef<TextInput>(null);
 
@@ -129,8 +139,8 @@ const NewsDetailScreen = () => {
 
       let item: News | undefined = allNews.find((n) => n._id === newsId);
       if (!item) {
-        const cached = await cacheService.getNewsCache();
-        item = cached?.news.find((n) => n._id === newsId);
+        const cachedNews = await cacheService.getNewsCache();
+        item = cachedNews?.news.find((n) => n._id === newsId);
         if (!item) {
           const fetched = await fetchNewsById(newsId);
           item = {
@@ -151,6 +161,7 @@ const NewsDetailScreen = () => {
       setEditTitle(item.title);
       setEditContent(item.content);
       setEditImage(item.image || null);
+      setEditImageUrl(item.image && isValidUrl(item.image) ? item.image : '');
       setLikeCount(updatedNews.likeCount ?? 0);
       setViewCount(updatedNews.viewCount ?? 0);
       setIsLiked(user?._id ? updatedNews.likedBy?.includes(user._id) || false : false);
@@ -411,6 +422,7 @@ const NewsDetailScreen = () => {
       setEditTitle(newsItem.title);
       setEditContent(newsItem.content);
       setEditImage(newsItem.image || null);
+      setEditImageUrl(newsItem.image && isValidUrl(newsItem.image) ? newsItem.image : '');
     } else {
       setTimeout(() => titleInputRef.current?.focus(), 100);
     }
@@ -432,6 +444,7 @@ const NewsDetailScreen = () => {
       });
       if (result.didCancel || !result.assets?.[0].uri) return;
       setEditImage(result.assets[0].uri);
+      setEditImageUrl('');
     } catch (error: any) {
       console.error('Image pick error:', error);
       Toast.show({
@@ -440,6 +453,11 @@ const NewsDetailScreen = () => {
         text2: 'Failed to pick image',
       });
     }
+  };
+
+  const handleImageUrlChange = (url: string) => {
+    setEditImageUrl(url);
+    setEditImage(url);
   };
 
   const handleSave = async () => {
@@ -475,9 +493,17 @@ const NewsDetailScreen = () => {
       });
       return;
     }
+    if (editImageUrl && !isValidUrl(editImageUrl)) {
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please enter a valid image URL',
+      });
+      return;
+    }
 
     try {
-      let imagePath = newsItem?.image;
+      let imagePath = editImageUrl || newsItem?.image;
       if (editImage && !editImage.startsWith('http') && !editImage.startsWith('/assets')) {
         imagePath = await uploadImage(editImage, newsId);
       }
@@ -518,6 +544,7 @@ const NewsDetailScreen = () => {
         );
       }
       setIsEditing(false);
+      setEditImageUrl('');
       Toast.show({
         type: 'success',
         text1: 'Success',
@@ -639,17 +666,30 @@ const NewsDetailScreen = () => {
                   defaultSource={require('../assets/placeholder.png')}
                 />
                 {isEditing && (
-                  <Animated.View style={[animatedEditStyle, { position: 'absolute', bottom: 10, right: 10 }]}>
+                  <Animated.View style={[animatedEditStyle, { position: 'absolute', bottom: 10, right: 10, flexDirection: 'row', gap: 8 }]}>
                     <TouchableOpacity
                       onPress={handleImagePick}
                       style={{ backgroundColor: '#007BFF', padding: 8, borderRadius: 8 }}
-                      accessibilityLabel="Change image"
+                      accessibilityLabel="Pick image from device"
                     >
                       <Icon name="image" size={20} color="#fff" />
                     </TouchableOpacity>
                   </Animated.View>
                 )}
               </ImageContainer>
+
+              {isEditing && (
+                <Animated.View style={[animatedEditStyle, { paddingHorizontal: 16, marginTop: 12 }]}>
+                  <CommentInput
+                    value={editImageUrl}
+                    onChangeText={handleImageUrlChange}
+                    placeholder="Or enter image URL (e.g., https://picsum.photos/600/400)"
+                    placeholderTextColor={`${theme.text}80`}
+                    keyboardType="url"
+                    accessibilityLabel="Edit image URL"
+                  />
+                </Animated.View>
+              )}
 
               <ContentContainer>
                 <ActionBar>

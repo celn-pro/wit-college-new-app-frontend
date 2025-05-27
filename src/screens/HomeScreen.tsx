@@ -200,17 +200,55 @@ const HomeScreen = () => {
     loadData();
   }, [user, setAllNews, availableCategories]);
 
-  useFocusEffect(
-    useCallback(() => {
-      const checkCacheAndReload = async () => {
-        if (initialLoadComplete && (await cacheService.isCacheExpired())) {
-          loadData(true, false);
-        }
-      };
-      checkCacheAndReload();
-    }, [initialLoadComplete])
-  );
+  useEffect(() => {
+  if (initialLoadComplete) {
+    // Update news state when archivedNewsIds or selectedCategory changes
+    setNews(
+      allNews.filter(
+        (item) =>
+          !archivedNewsIds.includes(item._id) &&
+          (selectedCategory === 'All' || item.category === selectedCategory)
+      )
+    );
+  }
+}, [archivedNewsIds, allNews, selectedCategory, initialLoadComplete]);
 
+ useFocusEffect(
+  useCallback(() => {
+    const syncNewsWithArchivedIds = async () => {
+      try {
+        // Check if archivedNewsIds have changed by comparing with cache
+        const cachedData = await cacheService.getNewsCache();
+        const cachedArchivedIds = cachedData?.archivedIds || [];
+        const currentArchivedIds = archivedNewsIds;
+
+        if (
+          initialLoadComplete &&
+          JSON.stringify(cachedArchivedIds) !== JSON.stringify(currentArchivedIds)
+        ) {
+          // Update news state to reflect current archivedNewsIds
+          setNews(
+            allNews.filter(
+              (item) =>
+                !currentArchivedIds.includes(item._id) &&
+                (selectedCategory === 'All' || item.category === selectedCategory)
+            )
+          );
+          // Update cache to stay in sync
+          await saveCachedData(allNews, currentArchivedIds);
+        }
+
+        // Check if cache is expired and fetch fresh data if needed
+        if (initialLoadComplete && (await cacheService.isCacheExpired())) {
+          await loadData(true, false);
+        }
+      } catch (err) {
+        console.error('Error syncing news or checking cache:', err);
+      }
+    };
+    syncNewsWithArchivedIds();
+  }, [initialLoadComplete, archivedNewsIds, allNews, selectedCategory, loadData])
+);
   const handleCategoryChange = async (category: string) => {
     setSelectedCategory(category);
     try {
