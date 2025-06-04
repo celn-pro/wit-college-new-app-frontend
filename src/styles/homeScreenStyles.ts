@@ -156,7 +156,6 @@ export const ErrorText = styled.Text`
   font-size: 16px;
   font-family.
 
-// ... (Previous message was cut off mid-sentence) ... 'Roboto-Regular';
   color: ${(props) => props.theme.text};
   text-align: center;
   margin: 20px;
@@ -164,8 +163,7 @@ export const ErrorText = styled.Text`
 
 export const IconContainer = styled.View`
   flex-direction: row;
-  width: 120px;
-  justify-content: space-between;
+  align-items: center;
   margin-left: 10px;
 `;
 
@@ -217,4 +215,16 @@ export const ManageCategoriesText = styled.Text`
   font-size: 14px;
   font-family: 'Roboto-Bold';
   color: #ffffff;
+`;
+
+export const CircleIconButton = styled.TouchableOpacity`
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  background-color: ${({ theme }) =>
+    theme.background === '#1C1C1E' ? '#333' : '#f0f0f0'};
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  elevation: 2;
 `;

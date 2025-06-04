@@ -8,6 +8,7 @@ export const lightTheme = {
   secondary: '#5856D6',
   cardBackground: '#F5F5F5',
   border: '#E0E0E0',
+  placeholder: '#888',
   font: {
     regular: 'System',
     bold: 'System',
@@ -28,6 +29,7 @@ export const darkTheme = {
   secondary: '#5E5CE6',
   cardBackground: '#2C2C2E',
   border: '#3A3A3C',
+  placeholder: '#aaa',
   font: {
     regular: 'System',
     bold: 'System',

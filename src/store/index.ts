@@ -101,17 +101,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const notifications = Array.isArray(get().notifications) ? get().notifications : [];
     return notifications.filter((n) => !n.read).length;
   },
-  toggleTheme: async () => {
-    set((state) => {
-      const modes: ('system' | 'light' | 'dark')[] = ['system', 'light', 'dark'];
-      const currentIndex = modes.indexOf(state.themeMode);
-      const newThemeMode = modes[(currentIndex + 1) % modes.length];
-      AsyncStorage.setItem('themeMode', newThemeMode).catch((error) =>
-        console.error('Error saving themeMode to AsyncStorage:', error)
-      );
-      return { themeMode: newThemeMode };
-    });
-  },
+ toggleTheme: async () => {
+  set((state) => {
+    const newThemeMode = state.themeMode === 'light' ? 'dark' : 'light';
+    AsyncStorage.setItem('themeMode', newThemeMode).catch((error) =>
+      console.error('Error saving themeMode to AsyncStorage:', error)
+    );
+    return { themeMode: newThemeMode };
+  });
+},
   addNotification: (notification) =>
     set((state) => {
       const updatedNotifications = [...state.notifications, notification];

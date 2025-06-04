@@ -134,9 +134,29 @@ export const SearchInput = styled.TextInput`
   margin-bottom: 15px;
 `;
 
+export const PillsContainer = styled.View`
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 12px;
+`;
+
+export const Pill = styled.TouchableOpacity<{ selected?: boolean }>`
+  padding: 8px 20px;
+  border-radius: 20px;
+  background-color: ${({ selected, theme }) =>
+    selected ? theme.primary : theme.cardBackground};
+  margin: 0 6px;
+`;
+
+// Optionally, update GradientHeader for a more modern look:
 export const GradientHeader = styled.View`
-  background-color: ${(props) => props.theme.primary};
-  border-radius: 15px;
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 24px 16px 16px 16px;
+  background-color: ${({ theme }) => theme.primary};
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+  align-items: flex-start;
+  justify-content: flex-end;
+  min-height: 80px;
+  position: relative;
 `;

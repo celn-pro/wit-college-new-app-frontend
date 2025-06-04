@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Animated, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, Animated, Alert, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { useAppStore } from '../store';
@@ -25,8 +25,16 @@ import {
   SearchInput,
   GradientHeader,
   PageContainer,
+  PillsContainer,
+  Pill,
 } from '../styles/profileScreenStyles';
 import { cacheService } from '../services/cacheService';
+
+const TABS = [
+  { key: 'profile', label: 'Profile' },
+  { key: 'dashboard', label: 'Dashboard' },
+  { key: 'settings', label: 'Settings' },
+];
 
 const ProfileScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -44,9 +52,14 @@ const ProfileScreen = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [stats, setStats] = useState({ newsCount: 0, userCount: 0, categoryStats: [] as { name: string; count: number }[] });
   const [showEmailPrompt, setShowEmailPrompt] = useState(!user?.email);
+  const [activeTab, setActiveTab] = useState('profile');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
+
+  // In ProfileScreen.tsx
+const getThemeDisplayText = () => (themeMode === 'light' ? 'Light' : 'Dark');
+const getThemeIcon = () => (themeMode === 'light' ? 'sunny' : 'moon');
 
   useEffect(() => {
     Animated.parallel([
@@ -110,19 +123,32 @@ const ProfileScreen = () => {
   };
 
   const handleLogout = async () => {
-    try {
-      await cacheService.clearCache();
-      setUser(null);
-      setToken(null);
-      setAllNews([]);
-      setArchivedNewsIds([]);
-      setNotifications([]);
-      navigation.navigate('Auth');
-      Toast.show({ type: 'success', text1: 'Logged Out', text2: 'You have been logged out' });
-    } catch (error) {
-      console.error('Error during logout:', error);
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to log out' });
-    }
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await cacheService.clearCache();
+              setUser(null);
+              setToken(null);
+              setAllNews([]);
+              setArchivedNewsIds([]);
+              setNotifications([]);
+              navigation.navigate('Auth');
+              Toast.show({ type: 'success', text1: 'Logged Out', text2: 'You have been logged out' });
+            } catch (error) {
+              console.error('Error during logout:', error);
+              Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to log out' });
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleCreateAdmin = async () => {
@@ -224,25 +250,39 @@ const ProfileScreen = () => {
     }
   };
 
-  const getThemeDisplayText = () => {
-    switch (themeMode) {
-      case 'system': return 'System';
-      case 'light': return 'Light';
-      case 'dark': return 'Dark';
-      default: return 'System';
-    }
-  };
+  // const getThemeDisplayText = () => {
+  //   switch (themeMode) {
+  //     case 'system': return 'System';
+  //     case 'light': return 'Light';
+  //     case 'dark': return 'Dark';
+  //     default: return 'System';
+  //   }
+  // };
 
-  const getThemeIcon = () => {
-    switch (themeMode) {
-      case 'system': return 'phone-portrait';
-      case 'light': return 'sunny';
-      case 'dark': return 'moon';
-      default: return 'phone-portrait';
-    }
-  };
+  // const getThemeIcon = () => {
+  //   switch (themeMode) {
+  //     case 'system': return 'phone-portrait';
+  //     case 'light': return 'sunny';
+  //     case 'dark': return 'moon';
+  //     default: return 'phone-portrait';
+  //   }
+  // };
 
-  const renderContent = () => {
+  const renderTabs = () => (
+    <PillsContainer style={{ marginVertical: 10 }}>
+      {TABS.map(tab => (
+        <Pill
+          key={tab.key}
+          selected={activeTab === tab.key}
+          onPress={() => setActiveTab(tab.key)}
+        >
+          <Text style={{ color: activeTab === tab.key ? '#fff' : text }}>{tab.label}</Text>
+        </Pill>
+      ))}
+    </PillsContainer>
+  );
+
+  const renderTabContent = () => {
     if (!user) {
       return (
         <Card style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
@@ -255,58 +295,52 @@ const ProfileScreen = () => {
       );
     }
 
-    return (
-      <>
-        <GradientHeader>
-          <Text style={{ fontSize: 24, fontFamily: 'Roboto-Bold', color: '#fff' }}>
-            Welcome, {user.username}!
-          </Text>
-          <RoleBadge userRole={user.role as 'admin' | 'faculty' | 'student'} style={{ marginTop: 5 }}>
-            <RoleBadgeText>{user.role.charAt(0).toUpperCase() + user.role.slice(1)}</RoleBadgeText>
-          </RoleBadge>
-        </GradientHeader>
+    if (activeTab === 'profile') {
+      return (
+        <>
+          {showEmailPrompt && (
+            <Card style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
+              <SectionTitle>Complete Your Profile</SectionTitle>
+              <Input
+                placeholder="Email"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor={theme.placeholder}
+              />
+              <ActionButton onPress={handleUpdateProfile}>
+                <ActionText>Save Email</ActionText>
+              </ActionButton>
+            </Card>
+          )}
 
-        {showEmailPrompt && (
           <Card style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
-            <SectionTitle>Complete Your Profile</SectionTitle>
+            <SectionTitle>Profile</SectionTitle>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+              <Icon name="person-circle" size={40} color={primary} />
+              <View style={{ marginLeft: 10 }}>
+                <Text style={{ fontSize: 18, fontFamily: 'Roboto-Bold', color: text }}>{user.username}</Text>
+                <StatText>Email: {user.email || 'Not set'}</StatText>
+                <StatText>Last Login: {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Unknown'}</StatText>
+              </View>
+            </View>
             <Input
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
+              placeholder="Display Name"
+              value={displayName}
+              onChangeText={setDisplayName}
             />
             <ActionButton onPress={handleUpdateProfile}>
-              <ActionText>Save Email</ActionText>
+              <ActionText>Update Profile</ActionText>
             </ActionButton>
           </Card>
-        )}
+        </>
+      );
+    }
 
-        <Card style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
-          <SectionTitle>Profile</SectionTitle>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-            <Icon name="person-circle" size={40} color={primary} />
-            <View style={{ marginLeft: 10 }}>
-              <Text style={{ fontSize: 18, fontFamily: 'Roboto-Bold', color: text }}>{user.username}</Text>
-              <StatText>Email: {user.email || 'Not set'}</StatText>
-              <StatText>Last Login: {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Unknown'}</StatText>
-            </View>
-          </View>
-          <Input
-            placeholder="Display Name"
-            value={displayName}
-            onChangeText={setDisplayName}
-          />
-          <Option onPress={toggleTheme}>
-            <OptionText>Theme: {getThemeDisplayText()}</OptionText>
-            <Icon name={getThemeIcon()} size={20} color={text} />
-          </Option>
-          <ActionButton onPress={handleUpdateProfile}>
-            <ActionText>Update Profile</ActionText>
-          </ActionButton>
-        </Card>
-
-        {user.role === 'admin' && (
+    if (activeTab === 'dashboard') {
+      if (user.role === 'admin') {
+        return (
           <>
             <Card style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
               <SectionTitle>Admin Dashboard</SectionTitle>
@@ -323,12 +357,14 @@ const ProfileScreen = () => {
                 value={adminUsername}
                 onChangeText={setAdminUsername}
                 autoCapitalize="none"
+                placeholderTextColor={theme.placeholder}
               />
               <Input
                 placeholder="New Admin Password"
                 value={adminPassword}
                 onChangeText={setAdminPassword}
                 secureTextEntry
+                placeholderTextColor={theme.placeholder}
               />
               <Input
                 placeholder="New Admin Email"
@@ -336,6 +372,7 @@ const ProfileScreen = () => {
                 onChangeText={setAdminEmail}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                placeholderTextColor={theme.placeholder}
               />
               <ActionButton onPress={handleCreateAdmin}>
                 <ActionText>Create Admin</ActionText>
@@ -374,9 +411,11 @@ const ProfileScreen = () => {
               ))}
             </Card>
           </>
-        )}
+        );
+      }
 
-        {user.role === 'student' && (
+      if (user.role === 'student') {
+        return (
           <Card style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
             <SectionTitle>Student Dashboard</SectionTitle>
             <StatText>Archived News: {archivedNewsIds.length}</StatText>
@@ -392,9 +431,11 @@ const ProfileScreen = () => {
               <ActionText>Update Profile</ActionText>
             </ActionButton>
           </Card>
-        )}
+        );
+      }
 
-        {user.role === 'faculty' && (
+      if (user.role === 'faculty') {
+        return (
           <Card style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
             <SectionTitle>Faculty Dashboard</SectionTitle>
             <StatText>Faculty News: {stats.newsCount}</StatText>
@@ -415,32 +456,58 @@ const ProfileScreen = () => {
               <ActionText>Update Profile</ActionText>
             </ActionButton>
           </Card>
-        )}
+        );
+      }
+    }
 
+    if (activeTab === 'settings') {
+      return (
         <Card style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }}>
-          <SectionTitle>Options</SectionTitle>
+          <SectionTitle>Settings</SectionTitle>
+          <Option onPress={toggleTheme}>
+            <OptionText>Theme: {getThemeDisplayText()}</OptionText>
+            <Icon name={getThemeIcon()} size={20} color={text} />
+          </Option>
           <Option onPress={() => navigation.navigate('CategorySelection')}>
             <OptionText>Manage Categories</OptionText>
             <Icon name="settings" size={20} color={text} />
           </Option>
           <Option onPress={handleLogout}>
-            <OptionText>Log Out</OptionText>
-            <Icon name="log-out" size={20} color={text} />
+            <OptionText style={{ color: '#FF6B6B' }}>Log Out</OptionText>
+            <Icon name="log-out" size={20} color="#FF6B6B" />
           </Option>
         </Card>
-      </>
-    );
+      );
+    }
+
+    return null;
   };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+      <GradientHeader>
+        <Text style={{ fontSize: 24, fontFamily: 'Roboto-Bold', color: '#fff', marginBottom: 4 }}>
+  Welcome, {user?.username || ''}!
+</Text>
+        <RoleBadge userRole={user?.role as 'admin' | 'faculty' | 'student'} style={{ marginTop: 5 }}>
+          <RoleBadgeText>
+            {user?.role
+              ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+              : ''}
+          </RoleBadgeText>
+        </RoleBadge>
+        <TouchableOpacity onPress={handleLogout} style={{ position: 'absolute', right: 16, top: 16 }}>
+          <Icon name="log-out-outline" size={28} color="#fff" />
+        </TouchableOpacity>
+      </GradientHeader>
       <PageContainer>
+        {renderTabs()}
         <ContentContainer
           contentContainerStyle={{
             paddingBottom: 100,
           }}
         >
-          {renderContent()}
+          {renderTabContent()}
         </ContentContainer>
       </PageContainer>
     </SafeAreaView>

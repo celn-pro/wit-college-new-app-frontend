@@ -51,6 +51,7 @@ import {
   EmptyStateText,
   ManageCategoriesButton,
   ManageCategoriesText,
+  CircleIconButton,
 } from '../styles/homeScreenStyles';
 import { cacheService } from '../services/cacheService';
 
@@ -71,7 +72,7 @@ const HomeScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { user, token, availableCategories, setAllNews, allNews, archivedNewsIds, setArchivedNewsIds, getUnreadCount } = useAppStore();
+  const { themeMode,toggleTheme, user, token, availableCategories, setAllNews, allNews, archivedNewsIds, setArchivedNewsIds, getUnreadCount } = useAppStore();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -368,25 +369,72 @@ const HomeScreen = () => {
 
   const renderHeaderAndCategories = () => (
     <>
-      <Header>
-        <HeaderTitle>College News</HeaderTitle>
-        <IconContainer>
-          <TouchableOpacity onPress={() => navigation.navigate('Search')}>
-            <Icon name="search" size={24} color={theme.text} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
+     <Header>
+        <View style={{ flex: 1 }}>
+          <HeaderTitle>College News</HeaderTitle>
+          {user && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 5 }}>
+              <Icon
+                name={
+                  user.role === 'admin'
+                    ? 'shield-checkmark'
+                    : user.role === 'faculty'
+                    ? 'school'
+                    : 'person'
+                }
+                size={16}
+                color={
+                  user.role === 'admin'
+                    ? '#FF6B6B'
+                    : user.role === 'faculty'
+                    ? '#4e54c8'
+                    : '#007BFF'
+                }
+                style={{ marginRight: 4 }}
+              />
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: theme.text,
+                  opacity: 0.7,
+                  fontWeight: 'bold',
+                  marginRight: 8,
+                }}
+              >
+                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+              </Text>
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: theme.text,
+                  opacity: 0.7,
+                }}
+              >
+                {user.username}
+              </Text>
+            </View>
+          )}
+        </View>
+       <IconContainer>
+          <CircleIconButton onPress={() => navigation.navigate('Search')}>
+            <Icon name="search" size={20} color={theme.text} />
+          </CircleIconButton>
+          <CircleIconButton onPress={() => navigation.navigate('Notifications')}>
             <NotificationIconContainer>
-              <Icon name="notifications" size={24} color={theme.text} />
+              <Icon name="notifications" size={20} color={theme.text} />
               {getUnreadCount() > 0 && (
                 <Badge>
                   <BadgeText>{getUnreadCount()}</BadgeText>
                 </Badge>
               )}
             </NotificationIconContainer>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Archive')}>
-            <Icon name="archive" size={24} color={theme.text} />
-          </TouchableOpacity>
+          </CircleIconButton>
+          <CircleIconButton onPress={toggleTheme}>
+            <Icon name={themeMode === 'light' ? 'moon' : 'sunny'} size={20} color={theme.text} />
+          </CircleIconButton>
+          {/* <CircleIconButton onPress={() => navigation.navigate('Archive')}>
+            <Icon name="archive" size={20} color={theme.text} />
+          </CircleIconButton> */}
         </IconContainer>
       </Header>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>

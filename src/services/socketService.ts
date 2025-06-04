@@ -5,8 +5,6 @@ import { useAppStore } from '../store';
 import { notificationService } from './notificationService';
 import { AppState } from 'react-native';
 
-// const BASE_URL = 'http://10.0.2.2:5000'
-
 export const socketService = {
   socket: null as Socket | null,
 
