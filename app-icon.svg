@@ -1,32 +1,35 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background -->
-  <rect x="0" y="0" width="512" height="512" rx="100" fill="#2A55A3"/>
-  
-  <!-- Newspaper folded effect -->
-  <path d="M90 120 L90 392 C90 403.046 98.9543 412 110 412 L402 412 C413.046 412 422 403.046 422 392 L422 120 L90 120 Z" fill="#F5F5F5"/>
-  <path d="M402 120 L402 392 C402 403.046 393.046 412 382 412 L402 412 C413.046 412 422 403.046 422 392 L422 120 L402 120 Z" fill="#E0E0E0"/>
+  <!-- Modern gradient background circle -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4F46E5;stop-opacity:0.1"/>
+      <stop offset="100%" style="stop-color:#F97316;stop-opacity:0.1"/>
+    </linearGradient>
+    <linearGradient id="bulbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B"/>
+      <stop offset="100%" style="stop-color:#FBBF24"/>
+    </linearGradient>
+    <linearGradient id="newsGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4F46E5"/>
+      <stop offset="100%" style="stop-color:#6366F1"/>
+    </linearGradient>
+  </defs>
 
-  <!-- Fold effect -->
-  <path d="M90 120 L402 120 L402 140 L90 140 Z" fill="#E0E0E0"/>
-  <path d="M90 170 L402 170 L402 190 L90 190 Z" fill="#E0E0E0"/>
-  
-  <!-- Headline text block -->
-  <rect x="130" y="210" width="252" height="30" rx="4" fill="#2A55A3"/>
-  
-  <!-- Text lines -->
-  <rect x="130" y="260" width="252" height="12" rx="4" fill="#BBBBBB"/>
-  <rect x="130" y="280" width="252" height="12" rx="4" fill="#BBBBBB"/>
-  <rect x="130" y="300" width="150" height="12" rx="4" fill="#BBBBBB"/>
-  
-  <!-- College emblem -->
-  <circle cx="256" cy="355" r="35" fill="#FFC107"/>
-  <path d="M256 335 L271 350 L256 365 L241 350 Z" fill="#FFFFFF"/>
-  <path d="M256 335 L271 350 L256 365 Z" fill="#FFECB3"/>
-  
-  <!-- Graduation cap -->
-  <path d="M256 90 L326 120 L256 150 L186 120 Z" fill="#FFC107"/>
-  <path d="M256 150 L256 170 L296 150 L296 125 L256 105 Z" fill="#FFECB3"/>
-  <circle cx="256" cy="90" r="15" fill="#2A55A3"/>
-  <circle cx="256" cy="90" r="8" fill="#FFC107"/>
+  <!-- Background circle with subtle gradient -->
+  <circle cx="256" cy="256" r="240" fill="url(#bgGradient)" stroke="#4F46E5" stroke-width="2" opacity="0.3"/>
+
+  <!-- Light bulb (idea/knowledge) with modern gradient -->
+  <path d="M256 140a80 80 0 0 1 80 80c0 28-16 52-32 68v16h-96v-16c-16-16-32-40-32-68a80 80 0 0 1 80-80z" fill="url(#bulbGradient)"/>
+  <rect x="224" y="308" width="64" height="24" rx="8" fill="#374151"/>
+  <rect x="236" y="336" width="40" height="12" rx="6" fill="#6B7280"/>
+
+  <!-- News/content lines with modern primary color -->
+  <rect x="140" y="220" width="90" height="12" rx="6" fill="url(#newsGradient)"/>
+  <rect x="140" y="240" width="120" height="10" rx="5" fill="#A8A29E"/>
+  <rect x="140" y="260" width="100" height="10" rx="5" fill="#A8A29E"/>
+  <rect x="140" y="280" width="60" height="10" rx="5" fill="#A8A29E"/>
+
+  <!-- Notification dot with modern accent color -->
+  <circle cx="360" cy="160" r="14" fill="#F97316" stroke="#ffffff" stroke-width="4"/>
+  <circle cx="360" cy="160" r="6" fill="#ffffff"/>
 </svg>

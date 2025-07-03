@@ -4,10 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-interface CategoryButtonProps {
-  selected: boolean;
-}
-
 export const SafeContainer = styled(SafeAreaView)`
   flex: 1;
   background-color: ${(props) => props.theme.background};
@@ -17,14 +13,31 @@ export const Header = styled.View`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  background-color: ${(props) => props.theme.cardBackground};
+  padding: 15px 20px 10px 20px;
+  background-color: transparent;
+  elevation: 8;
+  shadow-color: #000;
+  shadow-offset: 0px 4px;
+  shadow-opacity: 0.12;
+  shadow-radius: 8px;
 `;
 
 export const HeaderTitle = styled.Text`
-  font-size: 22px;
+  font-size: 26px;
   font-family: 'Roboto-Bold';
-  color: ${(props) => props.theme.text};
+  color: ${(props) => props.theme.text.inverse};
+  text-shadow: 0px 2px 8px rgba(0,0,0,0.25);
+  letter-spacing: 1px;
+`;
+
+export const CategoryListWrapper = styled.View`
+  background-color: ${(props) => props.theme.background};
+  elevation: 4;
+  shadow-color: #000;
+  shadow-offset: 0px 2px;
+  shadow-opacity: 0.08;
+  shadow-radius: 4px;
+  padding-bottom: 2px;
 `;
 
 export const CategoryList = styled(FlatList<string>)`
@@ -32,7 +45,7 @@ export const CategoryList = styled(FlatList<string>)`
   margin-horizontal: 10px;
 `;
 
-export const CategoryButton = styled.TouchableOpacity<CategoryButtonProps>`
+export const CategoryButton = styled.TouchableOpacity<{ selected: boolean }>`
   background-color: ${(props) => (props.selected ? props.theme.primary : props.theme.cardBackground)};
   padding: 8px 16px;
   border-radius: 20px;
@@ -40,6 +53,7 @@ export const CategoryButton = styled.TouchableOpacity<CategoryButtonProps>`
   min-width: 80px;
   align-items: center;
   height: 40px;
+  elevation: ${(props) => (props.selected ? 2 : 0)};
 `;
 
 export const CategoryText = styled.Text`
@@ -49,32 +63,27 @@ export const CategoryText = styled.Text`
   text-align: center;
 `;
 
-export const FeaturedCarouselContainer = styled.View`
-  margin: 15px 15px 0 15px;
-  border-radius: 10px;
-  overflow: hidden;
-`;
-
-export const FixedContentContainer = styled.View`
-  background-color: ${(props) => props.theme.background};
-`;
-
-export const ScrollableContentContainer = styled.ScrollView`
-  flex: 1;
-  background-color: ${(props) => props.theme.background};
+export const FeaturedCardWrapper = styled.View`
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  height: 210px;
+  margin-top: 20px;
 `;
 
 export const FeaturedCard = styled.TouchableOpacity`
-  width: ${SCREEN_WIDTH - 30}px;
+  width: 92%;
+  max-width: 420px;
   height: 200px;
-  border-radius: 10px;
+  border-radius: 16px;
   overflow: hidden;
   background-color: ${(props) => props.theme.cardBackground};
-  elevation: 3;
+  align-self: center;
+  elevation: 6;
   shadow-color: #000;
-  shadow-offset: 0px 2px;
-  shadow-opacity: 0.1;
-  shadow-radius: 3px;
+  shadow-offset: 0px 4px;
+  shadow-opacity: 0.15;
+  shadow-radius: 8px;
 `;
 
 export const FeaturedImage = styled.Image`
@@ -87,19 +96,15 @@ export const FeaturedOverlay = styled.View`
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 15px;
-  background-color: rgba(0, 0, 0, 0.5);
+  padding: 18px 15px 15px 15px;
+  background-color: rgba(0, 0, 0, 0.45);
 `;
 
 export const FeaturedTitle = styled.Text`
-  font-size: 18px;
+  font-size: 20px;
   font-family: 'Roboto-Bold';
-  color: #ffffff;
-`;
-
-export const NewsListContainer = styled.View`
-  margin-top: 15px;
-  flex: 1;
+  color: ${(props) => props.theme.text.inverse};
+  text-shadow: 0px 2px 8px rgba(0,0,0,0.25);
 `;
 
 export const NewsCard = styled.TouchableOpacity`
@@ -107,6 +112,8 @@ export const NewsCard = styled.TouchableOpacity`
   padding: 15px 20px;
   border-bottom-width: 1px;
   border-bottom-color: ${(props) => props.theme.cardBackground};
+  background-color: ${(props) => props.theme.background};
+  elevation: 1;
 `;
 
 export const NewsImage = styled.Image`
@@ -154,8 +161,7 @@ export const LoadingContainer = styled.View`
 
 export const ErrorText = styled.Text`
   font-size: 16px;
-  font-family.
-
+  font-family: 'Roboto-Regular';
   color: ${(props) => props.theme.text};
   text-align: center;
   margin: 20px;
@@ -175,7 +181,7 @@ export const Badge = styled.View`
   position: absolute;
   top: -5px;
   right: -5px;
-  background-color: #ff0000;
+  background-color: ${(props) => props.theme.error};
   border-radius: 10px;
   min-width: 20px;
   height: 20px;
@@ -186,7 +192,7 @@ export const Badge = styled.View`
 
 export const BadgeText = styled.Text`
   font-family: 'Roboto-Regular';
-  color: #ffffff;
+  color: ${(props) => props.theme.text.inverse};
   font-size: 12px;
   font-weight: bold;
 `;
@@ -199,7 +205,7 @@ export const EmptyStateContainer = styled.View`
 export const EmptyStateText = styled.Text`
   font-size: 16px;
   font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
+  color: ${(props) => props.theme.text.primary};
   text-align: center;
   margin-top: 10px;
 `;

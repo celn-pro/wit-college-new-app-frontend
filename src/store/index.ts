@@ -34,17 +34,19 @@ export interface News {
 
 interface AppStore {
   user: User | null;
-  themeMode: 'system' | 'light' | 'dark';
+  themeMode: 'light' | 'dark';
   notifications: Notification[];
   allNews: News[];
   lastUpdated: string | null;
   availableCategories: string[];
   token: string | null;
   archivedNewsIds: string[];
+  lastArchivedIds: string[];
   setArchivedNewsIds: (ids: string[]) => void;
+  setLastArchivedIds: (ids: string[]) => void;
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
-  setThemeMode: (themeMode: 'system' | 'light' | 'dark') => void;
+  setThemeMode: (themeMode: 'light' | 'dark') => void;
   toggleTheme: () => void;
   addNotification: (notification: Notification) => void;
   setNotifications: (notifications: Notification[]) => void;
@@ -60,18 +62,22 @@ interface AppStore {
 
 export const useAppStore = create<AppStore>((set, get) => ({
   user: null,
-  themeMode: 'system',
+  themeMode: 'light',
   notifications: [],
   allNews: [],
   lastUpdated: null,
   availableCategories: ['General', 'Sports', 'Events', 'Academics'],
   token: null,
   archivedNewsIds: [],
+  lastArchivedIds: [],
   setArchivedNewsIds: (ids) => {
     set({ archivedNewsIds: ids });
     AsyncStorage.setItem('archived_news_ids', JSON.stringify(ids)).catch((error) =>
       console.error('Error saving archivedNewsIds:', error)
     );
+  },
+  setLastArchivedIds: (ids) => {
+    set({ lastArchivedIds: ids });
   },
   setUser: async (user) => {
     set({ user });

@@ -11,7 +11,7 @@ export const SafeContainer = styled(SafeAreaView)`
 
 export const Container = styled.View`
   flex: 1;
-  background-color: ${(props) => props.theme.background};
+  background-color: transparent;
 `;
 
 export const Header = styled.View`
@@ -258,5 +258,5 @@ export const LoadingContainer = styled.View`
 
 export const ContentWrapper = styled.View`
   flex: 1;
-  background-color: ${(props) => props.theme.background};
+  background-color: transparent;
 `;

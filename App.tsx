@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'react-native';
 import { ThemeProvider } from '@emotion/react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -10,12 +10,22 @@ import { cacheService } from './src/services/cacheService';
 import { notificationService } from './src/services/notificationService';
 import { socketService } from './src/services/socketService';
 import Toast from 'react-native-toast-message';
+import SplashScreen from './src/screens/SplashScreen';
 
 enableScreens();
 
 const App = () => {
   const { user, token, setToken, setNotifications, setUser, setThemeMode } = useAppStore();
   const theme = useTheme();
+  const [showSplash, setShowSplash] = useState(true);
+
+   useEffect(() => {
+    // Hide splash after 2 seconds (or after initialization)
+    if (showSplash) {
+      const timer = setTimeout(() => setShowSplash(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSplash]);
 
   // Initialize app state
   useEffect(() => {
@@ -33,7 +43,15 @@ const App = () => {
         if (storedToken) setToken(storedToken);
         if (userData) setUser(userData);
         if (notifications) setNotifications(notifications || []);
-        setThemeMode(themeMode || 'system');
+
+        // Initialize theme: use cached theme or detect from system
+        if (themeMode && (themeMode === 'light' || themeMode === 'dark')) {
+          setThemeMode(themeMode);
+        } else {
+          // Use system theme to initialize app theme
+          const systemTheme = colorScheme || 'light';
+          setThemeMode(systemTheme === 'dark' ? 'dark' : 'light');
+        }
       } catch (error) {
         console.error('Initialization error:', error);
         Toast.show({
@@ -84,11 +102,17 @@ const App = () => {
     <SafeAreaProvider>
       <ThemeProvider theme={theme}>
         <StatusBar
-          barStyle={theme.text === '#FFFFFF' ? 'light-content' : 'dark-content'}
+          barStyle={theme.text.primary === '#FFFFFF' ? 'light-content' : 'dark-content'}
           backgroundColor={theme.background}
         />
-        <Navigation />
-        <Toast />
+        {showSplash ? (
+          <SplashScreen onFinish={() => setShowSplash(false)} />
+        ) : (
+          <>
+            <Navigation />
+            <Toast />
+          </>
+        )}
       </ThemeProvider>
     </SafeAreaProvider>
   );

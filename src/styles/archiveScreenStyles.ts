@@ -9,17 +9,18 @@ export const SafeAreaContainer = styled(SafeAreaView)`
 
 export const Container = styled.View`
   flex: 1;
-  background-color: ${(props) => props.theme.background};
+  background-color: transparent;
   padding: 15px;
-  padding-bottom: 0; // Remove bottom padding as it will be handled by FlatList
+  padding-bottom: 0; 
 `;
 
 export const Header = styled.View`
   flex-direction: row;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   padding: 10px 0;
-  margin-bottom: 15px;
+  margin-left: 15px;
+  margin-top: 20px;
 `;
 
 export const HeaderTitle = styled.Text`

@@ -8,13 +8,13 @@ interface RoleBadgeProps {
 // Main container that ensures safe area and proper height
 export const PageContainer = styled.View`
   flex: 1;
-  background-color: ${(props) => props.theme.background};
+  background-color: transparent;
 `;
 
 // Scrollable content container with proper padding
 export const ContentContainer = styled.ScrollView`
   flex: 1;
-  background-color: ${(props) => props.theme.background};
+  background-color: transparent;
   padding: 20px;
   padding-bottom: ${Platform.OS === 'ios' ? '100px' : '80px'}; // Extra bottom padding to avoid tab bar overlap
 `;
@@ -84,22 +84,22 @@ export const ActionButton = styled.TouchableOpacity`
 export const ActionText = styled.Text`
   font-size: 16px;
   font-family: 'Roboto-Bold';
-  color: #ffffff;
+  color: ${(props) => props.theme.text.inverse};
 `;
 
 export const StatText = styled.Text`
   font-size: 16px;
   font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
+  color: ${(props) => props.theme.text.primary};
   margin-bottom: 5px;
 `;
 
 export const RoleBadge = styled(Animated.View)<RoleBadgeProps>`
   background-color: ${(props) => {
     switch (props.userRole) {
-      case 'admin': return '#FF6B6B';
-      case 'faculty': return '#4ECDC4';
-      case 'student': return '#45B7D1';
+      case 'admin': return props.theme.error;
+      case 'faculty': return props.theme.primary;
+      case 'student': return props.theme.accent;
       default: return props.theme.primary;
     }
   }};
@@ -110,7 +110,7 @@ export const RoleBadge = styled(Animated.View)<RoleBadgeProps>`
 export const RoleBadgeText = styled.Text`
   font-size: 14px;
   font-family: 'Roboto-Medium';
-  color: #ffffff;
+  color: ${(props) => props.theme.text.inverse};
 `;
 
 export const UserItem = styled.View`
@@ -129,7 +129,7 @@ export const SearchInput = styled.TextInput`
   padding: 12px;
   font-size: 16px;
   font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
+  color: ${(props) => props.theme.text.primary};
   border: 1px solid ${(props) => props.theme.border};
   margin-bottom: 15px;
 `;

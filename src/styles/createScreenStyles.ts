@@ -6,16 +6,18 @@ const TAB_BAR_HEIGHT = 60;
 
 export const Container = styled.ScrollView`
   flex: 1;
-  background-color: ${(props) => props.theme.background};
+  background-color: transparent;
   padding: 20px;
 `;
 
 export const Header = styled.View`
-  flex-direction: row;
-  justify-content: space-between;
+ flex-direction: row;
   align-items: center;
-  margin-bottom: 20px;
-  margin-top: ${Platform.OS === 'ios' ? '0px' : '20px'};
+  justify-content: space-between;
+  padding: 10px 0;
+  margin-top: ${Platform.OS === 'ios' ? '60px' : '40px'};
+  margin-left: 15px;
+  
 `;
 
 export const HeaderTitle = styled.Text`
@@ -91,7 +93,7 @@ export const SubmitButton = styled.TouchableOpacity`
 export const SubmitButtonText = styled.Text`
   font-size: 18px;
   font-family: 'Roboto-Bold';
-  color: #ffffff;
+  color: ${(props) => props.theme.text.inverse};
 `;
 
 export const ImageSelectButton = styled.TouchableOpacity`
@@ -105,7 +107,7 @@ export const ImageSelectButton = styled.TouchableOpacity`
 export const ImageNameText = styled.Text`
   font-size: 14px;
   font-family: 'Roboto-Regular';
-  color: ${(props) => props.theme.text};
+  color: ${(props) => props.theme.text.primary};
   margin-top: 8px;
 `;
 
